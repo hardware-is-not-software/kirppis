@@ -3,32 +3,26 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Install dependencies for development
-RUN apk add --no-cache python3 make g++ git
-
-# Create directories for uploads and logs
-RUN mkdir -p /app/uploads /app/logs
-
-# Copy package.json files
-COPY package*.json ./
-COPY client/package*.json ./client/
-COPY server/package*.json ./server/
-
 # Install dependencies
+COPY package*.json ./
 RUN npm install
-RUN cd client && npm install
+
+# Copy server code
+COPY server/ ./server/
 RUN cd server && npm install
 
-# Copy source code
-COPY . .
+# Build server
+RUN cd server && npm run build
+
+# Create necessary directories
+RUN mkdir -p uploads logs
 
 # Set environment variables
-ENV NODE_ENV=development
-ENV PORT=3000
+ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 
 # Expose port
-EXPOSE ${PORT}
+EXPOSE ${PORT:-3000}
 
-# Start the application in development mode
-CMD ["npm", "run", "dev"] 
+# Start the server
+CMD ["node", "server/dist/index.js"] 

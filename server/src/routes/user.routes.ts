@@ -1,29 +1,25 @@
 import { Router } from 'express';
-// Import controllers when they are created
-// import { getAllUsers, getUserById, updateUser, deleteUser } from '../controllers/user.controller';
-// import { protect, restrictTo } from '../middlewares/auth.middleware';
+import { getAllUsers, getUserById, updateUser, deleteUser } from '../controllers/user.controller';
+import { protect, restrictTo } from '../middlewares/auth.middleware';
+import { UserRole } from '../models/user.model';
 
 const router = Router();
 
-// User routes
-// Protected routes - require authentication
-// router.use(protect);
+// All user routes require authentication
+router.use(protect);
 
-// Admin only routes
-// router.route('/')
-//   .get(restrictTo('admin'), getAllUsers);
+// Routes accessible by all authenticated users
+router.route('/:id')
+  .get(getUserById)
+  .patch(updateUser);
 
-// router.route('/:id')
-//   .get(getUserById)
-//   .patch(updateUser)
-//   .delete(restrictTo('admin'), deleteUser);
+// Routes accessible only by admins
+router.use(restrictTo(UserRole.ADMIN));
 
-// Placeholder route for now
-router.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'User routes are set up but controllers are not implemented yet'
-  });
-});
+router.route('/')
+  .get(getAllUsers);
+
+router.route('/:id')
+  .delete(deleteUser);
 
 export default router; 

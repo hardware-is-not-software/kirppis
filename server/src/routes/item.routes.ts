@@ -1,28 +1,32 @@
 import { Router } from 'express';
-// Import controllers when they are created
-// import { getAllItems, getItemById, createItem, updateItem, deleteItem } from '../controllers/item.controller';
-// import { protect, restrictTo } from '../middlewares/auth.middleware';
+import { 
+  getAllItems, 
+  getItemById, 
+  createItem, 
+  updateItem, 
+  deleteItem,
+  reserveItem,
+  cancelReservation,
+  markItemAsSold
+} from '../controllers/item.controller';
+import { protect } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// Item routes
-// Public routes - no authentication required
-// router.get('/', getAllItems);
-// router.get('/:id', getItemById);
+// Public routes
+router.get('/', getAllItems);
+router.get('/:id', getItemById);
 
 // Protected routes - require authentication
-// router.use(protect);
+router.use(protect);
 
-// router.post('/', createItem);
-// router.patch('/:id', updateItem);
-// router.delete('/:id', deleteItem);
+router.post('/', createItem);
+router.patch('/:id', updateItem);
+router.delete('/:id', deleteItem);
 
-// Placeholder route for now
-router.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'Item routes are set up but controllers are not implemented yet'
-  });
-});
+// Item reservation and status routes
+router.patch('/:id/reserve', reserveItem);
+router.patch('/:id/cancel-reservation', cancelReservation);
+router.patch('/:id/mark-sold', markItemAsSold);
 
 export default router; 
