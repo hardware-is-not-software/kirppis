@@ -9,14 +9,15 @@ Here are the requirements:
 | R0.4 | Preferrably use similar log in structure as LibreChat | Medium | Open |
 | R0.5 | Login with email | Medium | Open |
 | R0.6 | Logout | Medium | Open |
-| R0.7 | User profile | Medium | Open |
-| R0.8 | User profile picture | Medium | Open |
-| R0.9 | User profile background picture | Medium | Open |
-| R0.10 | User profile description | Medium | Open |
-| R0.11 | User profile location | Medium | Open |
-| R0.12 | User profile phone number | Medium | Open |
-| R0.13 | User profile email | Medium | Open |
-| R0.14 | User profile password | Medium | Open |
+| R0.7 | Visitor can see posts, but not interact with them | Medium | Open |
+| R0.8 | User profile | Medium | Open |
+| R0.9 | User profile picture | Medium | Open |
+| R0.10 | User profile background picture | Medium | Open |
+| R0.11 | User profile description | Medium | Open |
+| R0.12 | User profile location | Medium | Open |
+| R0.13 | User profile phone number | Medium | Open |
+| R0.14 | User profile email | Medium | Open |
+| R0.15 | User profile password | Medium | Open |
 | R1.0 | Runs in Mirantis swarm cluster | High | Open |
 | R1.1 | Local development environment with docker compose | High | Open |
 | R1.2 | Separate database and application | Medium | Open |
