@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    depends_on:
+      - mongodb
+      - meilisearch
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - HOST=0.0.0.0
+      - PORT=${PORT:-3000}
+      - MONGO_URI=mongodb://mongodb:27017/${MONGO_DB_NAME:-secondhand}
+      - MEILI_HOST=http://meilisearch:7700
+    volumes:
+      - ./client:/app/client
+      - ./server:/app/server
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./.env:/app/.env
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker/database/init-scripts:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_NO_ANALYTICS=${MEILI_NO_ANALYTICS:-true}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-masterKey}
+    volumes:
+      - meilisearch_data:/meili_data
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+
+volumes:
+  mongodb_data:
+  meilisearch_data: 

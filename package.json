@@ -1,0 +1,30 @@
+{
+  "name": "second-hand-store",
+  "version": "1.0.0",
+  "description": "Company internal second-hand store application",
+  "main": "index.js",
+  "scripts": {
+    "client": "cd client && npm run dev",
+    "server": "cd server && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "concurrently \"cd client && npm run build\" \"cd server && npm run build\"",
+    "start": "cd server && npm start",
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "test": "concurrently \"cd client && npm test\" \"cd server && npm test\"",
+    "lint": "concurrently \"cd client && npm run lint\" \"cd server && npm run lint\"",
+    "docker-dev": "docker-compose up",
+    "docker-build": "docker-compose build",
+    "docker-down": "docker-compose down"
+  },
+  "keywords": [
+    "second-hand",
+    "store",
+    "marketplace",
+    "internal"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+} 
