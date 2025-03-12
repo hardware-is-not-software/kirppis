@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { config } from './config/env';
-import { connectDB } from './config/db';
+// import { connectDB } from './config/db';
 import { setupLogger, logger } from './utils/logger';
 import { errorHandler } from './middlewares/error.middleware';
 import routes from './routes';
@@ -41,7 +41,8 @@ const HOST = config.host;
 const startServer = async () => {
   try {
     // Connect to MongoDB
-    await connectDB();
+    // await connectDB();
+    logger.warn('Database connection skipped for development');
     
     app.listen(PORT, HOST, () => {
       logger.info(`Server running on http://${HOST}:${PORT}`);
