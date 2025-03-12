@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-// import { User, UserRole } from '../models/user.model';
+import { User, UserRole } from '../models/user.model';
 import { ApiError } from '../middlewares/error.middleware';
 import { config } from '../config/env';
 import jwt from 'jsonwebtoken';
@@ -27,11 +27,12 @@ const mockUsers = [
 ];
 
 // Helper function to generate JWT token
-const generateAuthToken = (user: any) => {
+const generateAuthToken = (user: any): string => {
+  const payload = { id: user._id, role: user.role };
   return jwt.sign(
-    { id: user._id, role: user.role },
-    config.jwtSecret,
-    { expiresIn: config.jwtExpiresIn }
+    payload, 
+    config.jwtSecret as jwt.Secret, 
+    { expiresIn: config.jwtExpiresIn as any }
   );
 };
 
@@ -45,40 +46,28 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     const { name, email, password } = req.body;
 
     // Check if user already exists
-    const existingUser = mockUsers.find(user => user.email === email);
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return next(new ApiError(400, 'User with this email already exists'));
     }
 
     // Create new user
-    const newUser = {
-      _id: (mockUsers.length + 1).toString(),
+    const user = await User.create({
       name,
       email,
       password,
-      role: 'user',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    mockUsers.push(newUser);
+      role: UserRole.USER // Default role
+    });
 
     // Generate JWT token
-    const token = generateAuthToken(newUser);
+    const token = user.generateAuthToken();
 
-    // Return user data and token
+    // Send response
     res.status(201).json({
       status: 'success',
       token,
       data: {
-        user: {
-          _id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          createdAt: newUser.createdAt,
-          updatedAt: newUser.updatedAt
-        }
+        user
       }
     });
   } catch (error) {
@@ -95,33 +84,29 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
   try {
     const { email, password } = req.body;
 
-    // Find user by email
-    const user = mockUsers.find(user => user.email === email);
-    if (!user) {
-      return next(new ApiError(401, 'Invalid email or password'));
+    // Check if email and password exist
+    if (!email || !password) {
+      return next(new ApiError(400, 'Please provide email and password'));
     }
 
-    // Check password
-    if (user.password !== password) {
-      return next(new ApiError(401, 'Invalid email or password'));
+    // Check if user exists and password is correct
+    const user = await User.findOne({ email }).select('+password');
+    if (!user || !(await user.comparePassword(password))) {
+      return next(new ApiError(401, 'Incorrect email or password'));
     }
 
     // Generate JWT token
-    const token = generateAuthToken(user);
+    const token = user.generateAuthToken();
 
-    // Return user data and token
+    // Remove password from output
+    user.password = undefined as any;
+
+    // Send response
     res.status(200).json({
       status: 'success',
       token,
       data: {
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt
-        }
+        user
       }
     });
   } catch (error) {
@@ -135,8 +120,12 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
  * @access Private
  */
 export const logout = (req: Request, res: Response): void => {
-  // In a real app, we might invalidate the token
-  // For now, just return success
+  // If using cookies, clear the cookie
+  // res.cookie('jwt', 'loggedout', {
+  //   expires: new Date(Date.now() + 10 * 1000),
+  //   httpOnly: true
+  // });
+
   res.status(200).json({
     status: 'success',
     message: 'Logged out successfully'
@@ -149,21 +138,10 @@ export const logout = (req: Request, res: Response): void => {
  * @access Private
  */
 export const getCurrentUser = (req: Request, res: Response): void => {
-  // In a real app, we would get the user from the request object
-  // For now, just return a mock user
-  const user = mockUsers[0];
-  
   res.status(200).json({
     status: 'success',
     data: {
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-      }
+      user: req.user
     }
   });
 };
@@ -177,21 +155,28 @@ export const updatePassword = async (req: Request, res: Response, next: NextFunc
   try {
     const { currentPassword, newPassword } = req.body;
 
-    // In a real app, we would get the user from the request object
-    // For now, just use a mock user
-    const user = mockUsers[0];
+    // Get user from database with password
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) {
+      return next(new ApiError(404, 'User not found'));
+    }
 
     // Check if current password is correct
-    if (user.password !== currentPassword) {
+    if (!(await user.comparePassword(currentPassword))) {
       return next(new ApiError(401, 'Current password is incorrect'));
     }
 
     // Update password
     user.password = newPassword;
-    user.updatedAt = new Date().toISOString();
+    await user.save();
 
+    // Generate new token
+    const token = user.generateAuthToken();
+
+    // Send response
     res.status(200).json({
       status: 'success',
+      token,
       message: 'Password updated successfully'
     });
   } catch (error) {

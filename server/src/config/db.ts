@@ -7,6 +7,7 @@ import { logger } from '../utils/logger';
  */
 export const connectDB = async (): Promise<void> => {
   try {
+    logger.info(`Attempting to connect to MongoDB at: ${config.mongoUri}`);
     const conn = await mongoose.connect(config.mongoUri);
     
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
@@ -14,6 +15,7 @@ export const connectDB = async (): Promise<void> => {
     // Handle MongoDB connection events
     mongoose.connection.on('error', (err) => {
       logger.error(`MongoDB connection error: ${err}`);
+      console.error('MongoDB connection error details:', err);
     });
     
     mongoose.connection.on('disconnected', () => {
@@ -29,6 +31,7 @@ export const connectDB = async (): Promise<void> => {
     
   } catch (error) {
     logger.error(`Error connecting to MongoDB: ${error}`);
-    process.exit(1);
+    console.error('MongoDB connection error details:', error);
+    throw error; // Re-throw to be caught by the caller
   }
 }; 

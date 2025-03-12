@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/env';
 
 // User roles
@@ -87,10 +87,13 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
 
 // Generate JWT token
 userSchema.methods.generateAuthToken = function(): string {
+  const payload = { id: this._id, role: this.role };
+  
+  // Use type assertion to satisfy TypeScript
   return jwt.sign(
-    { id: this._id, role: this.role },
-    config.jwtSecret,
-    { expiresIn: config.jwtExpiresIn }
+    payload, 
+    config.jwtSecret as jwt.Secret, 
+    { expiresIn: config.jwtExpiresIn as any }
   );
 };
 

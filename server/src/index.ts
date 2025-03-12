@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { config } from './config/env';
-// import { connectDB } from './config/db';
+import { connectDB } from './config/db';
 import { setupLogger, logger } from './utils/logger';
 import { errorHandler } from './middlewares/error.middleware';
 import routes from './routes';
@@ -28,6 +28,17 @@ if (config.enableLogging) {
   app.use(morgan('combined', { stream: { write: message => logger.http(message.trim()) } }));
 }
 
+// Root route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Welcome to the Kirppis API',
+    version: 'v1',
+    documentation: '/api/v1/docs',
+    healthCheck: '/api/v1/health'
+  });
+});
+
 // API Routes
 app.use('/api/v1', routes);
 
@@ -41,14 +52,14 @@ const HOST = config.host;
 const startServer = async () => {
   try {
     // Connect to MongoDB
-    // await connectDB();
-    logger.warn('Database connection skipped for development');
+    await connectDB();
     
     app.listen(PORT, HOST, () => {
       logger.info(`Server running on http://${HOST}:${PORT}`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
+    console.error('Error details:', error);
     process.exit(1);
   }
 };

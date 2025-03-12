@@ -1,14 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { Secret } from 'jsonwebtoken';
 import { config } from '../config/env';
-// import { User, UserRole } from '../models/user.model';
+import { User, UserRole } from '../models/user.model';
 import { ApiError } from './error.middleware';
-
-// Mock user roles
-export enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin'
-}
 
 // Extend Express Request interface to include user
 declare global {
@@ -18,26 +12,6 @@ declare global {
     }
   }
 }
-
-// Mock users for development
-const mockUsers = [
-  {
-    _id: '1',
-    name: 'Admin User',
-    email: 'admin@example.com',
-    role: UserRole.ADMIN,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    _id: '2',
-    name: 'Test User',
-    email: 'user@example.com',
-    role: UserRole.USER,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
 
 /**
  * Middleware to protect routes - verifies JWT token
@@ -61,12 +35,10 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     }
     
     // Verify token
-    const decoded = jwt.verify(token, config.jwtSecret) as { id: string; role: string };
+    const decoded = jwt.verify(token, config.jwtSecret as Secret) as { id: string; role: UserRole };
     
     // Check if user still exists
-    // In a real app, we would query the database
-    // For now, just use mock data
-    const currentUser = mockUsers.find(user => user._id === decoded.id);
+    const currentUser = await User.findById(decoded.id);
     if (!currentUser) {
       return next(new ApiError(401, 'The user belonging to this token no longer exists.'));
     }
@@ -88,7 +60,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
 /**
  * Middleware to restrict access based on user role
  */
-export const restrictTo = (...roles: string[]) => {
+export const restrictTo = (...roles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     // Check if user exists and has required role
     if (!req.user) {

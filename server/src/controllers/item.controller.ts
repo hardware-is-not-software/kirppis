@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Item, ItemStatus } from '../models/item.model';
+import { Item, ItemStatus, IItem } from '../models/item.model';
 import { ApiError } from '../middlewares/error.middleware';
 
 /**
@@ -21,7 +21,7 @@ export const getAllItems = async (req: Request, res: Response, next: NextFunctio
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
     
     // Find items
-    let query = Item.find(JSON.parse(queryStr));
+    let query = Item.find(JSON.parse(queryStr)) as any;
     
     // Sorting
     if (req.query.sort) {

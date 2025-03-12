@@ -1,28 +1,6 @@
 version: '3.8'
 
 services:
-  app:
-    build:
-      context: .
-      dockerfile: docker/app/Dockerfile
-    ports:
-      - "${PORT:-3000}:${PORT:-3000}"
-    depends_on:
-      - mongodb
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - HOST=0.0.0.0
-      - PORT=${PORT:-3000}
-      - MONGO_URI=mongodb://mongodb:27017/${MONGO_DB_NAME:-kirppis}
-    volumes:
-      - ./client:/app/client
-      - ./server:/app/server
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
-      - ./.env:/app/.env
-    restart: unless-stopped
-    user: "${UID:-1000}:${GID:-1000}"
-
   mongodb:
     image: mongo:latest
     ports:
@@ -31,7 +9,7 @@ services:
       - mongodb_data:/data/db
       - ./docker/database/init-scripts:/docker-entrypoint-initdb.d
     restart: unless-stopped
-    user: "${UID:-1000}:${GID:-1000}"
+    # Using default MongoDB user for proper permissions
 
 volumes:
   mongodb_data: 
