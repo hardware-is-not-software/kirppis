@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
+import axios from 'axios';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -25,13 +26,23 @@ const LoginPage = () => {
       await login(email, password);
       navigate(from, { replace: true });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : 'Failed to login. Please check your credentials.';
-      setError(errorMessage);
+      if (axios.isAxiosError(err) && err.response) {
+        // Handle server validation errors
+        setError(err.response.data.message || 'Login failed. Please check your credentials.');
+      } else {
+        const errorMessage = err instanceof Error 
+          ? err.message 
+          : 'Failed to login. Please check your credentials.';
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAdminLogin = () => {
+    setEmail('admin@example.com');
+    setPassword('Admin123!');
   };
 
   return (
@@ -115,6 +126,16 @@ const LoginPage = () => {
                 Register
               </Link>
             </p>
+          </div>
+          
+          <div className="text-center mt-2">
+            <button
+              type="button"
+              onClick={handleAdminLogin}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Use admin credentials
+            </button>
           </div>
         </form>
       </div>

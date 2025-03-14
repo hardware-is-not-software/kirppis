@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
+import axios from 'axios';
 
 const RegisterPage = () => {
   const [name, setName] = useState('');
@@ -14,6 +15,22 @@ const RegisterPage = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  // Password validation function
+  const validatePassword = (password: string) => {
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const isLongEnough = password.length >= 8;
+    
+    return {
+      isValid: hasUppercase && hasLowercase && hasNumber && isLongEnough,
+      hasUppercase,
+      hasLowercase,
+      hasNumber,
+      isLongEnough
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -25,8 +42,9 @@ const RegisterPage = () => {
     }
 
     // Validate password strength
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
+    const validation = validatePassword(password);
+    if (!validation.isValid) {
+      setError('Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one number');
       return;
     }
 
@@ -36,14 +54,22 @@ const RegisterPage = () => {
       await register(name, email, password);
       navigate('/');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : 'Failed to register. Please try again.';
-      setError(errorMessage);
+      if (axios.isAxiosError(err) && err.response) {
+        // Handle server validation errors
+        setError(err.response.data.message || 'Registration failed. Please check your information and try again.');
+      } else {
+        const errorMessage = err instanceof Error 
+          ? err.message 
+          : 'Failed to register. Please try again.';
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Check password strength as user types
+  const passwordValidation = validatePassword(password);
 
   return (
     <Layout>
@@ -98,9 +124,23 @@ const RegisterPage = () => {
               required
               minLength={8}
             />
-            <p className="text-sm text-gray-500 mt-1">
-              Password must be at least 8 characters long
-            </p>
+            <div className="text-sm mt-1">
+              <p className="font-medium mb-1">Password requirements:</p>
+              <ul className="space-y-1 pl-5 list-disc">
+                <li className={passwordValidation.isLongEnough ? "text-green-600" : "text-gray-500"}>
+                  At least 8 characters
+                </li>
+                <li className={passwordValidation.hasUppercase ? "text-green-600" : "text-gray-500"}>
+                  At least one uppercase letter
+                </li>
+                <li className={passwordValidation.hasLowercase ? "text-green-600" : "text-gray-500"}>
+                  At least one lowercase letter
+                </li>
+                <li className={passwordValidation.hasNumber ? "text-green-600" : "text-gray-500"}>
+                  At least one number
+                </li>
+              </ul>
+            </div>
           </div>
 
           <div>

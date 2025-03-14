@@ -18,11 +18,18 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   
   // CORS configuration
-  corsOrigins: process.env.CORS_ORIGINS || 'http://localhost:3000',
+  corsOrigins: process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173',
   
   // Logging
   enableLogging: process.env.ENABLE_LOGGING !== 'false',
   logLevel: process.env.LOG_LEVEL || 'info',
+
+  // Admin user
+  adminEmail: process.env.ADMIN_EMAIL || 'admin@example.com',
+  adminPassword: process.env.ADMIN_PASSWORD || 'Admin123!',
+
+  // Default categories
+  defaultCategories: process.env.DEFAULT_CATEGORIES || 'Electronics,Furniture,Clothing,Books,Sports,Toys,Home Appliances,Other',
 };
 
 // Validate required environment variables in production

@@ -1,4 +1,5 @@
 import api from './api';
+import axios from 'axios';
 
 export interface RegisterData {
   name: string;
@@ -41,20 +42,39 @@ export interface PasswordUpdateResponse {
 }
 
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
-  const response = await api.post<AuthResponse>('/auth/register', data);
-  return response.data;
+  try {
+    const response = await api.post<AuthResponse>('/auth/register', data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      // Extract the error message from the response
+      const errorMessage = error.response.data.message || 'Registration failed';
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
 };
 
 export const login = async (data: LoginData): Promise<AuthResponse> => {
-  const response = await api.post<AuthResponse>('/auth/login', data);
-  
-  // Store token and user data in localStorage
-  if (response.data.token) {
-    localStorage.setItem('token', response.data.token);
-    localStorage.setItem('user', JSON.stringify(response.data.data.user));
+  try {
+    const response = await api.post<AuthResponse>('/auth/login', data);
+    
+    // Store token and user data in localStorage
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
+    }
+    
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      // Extract the error message from the response
+      const errorMessage = error.response.data.message || 'Login failed';
+      console.error('Login error:', error.response.data);
+      throw new Error(errorMessage);
+    }
+    throw error;
   }
-  
-  return response.data;
 };
 
 export const logout = async (): Promise<void> => {

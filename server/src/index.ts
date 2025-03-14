@@ -7,6 +7,7 @@ import { connectDB } from './config/db';
 import { setupLogger, logger } from './utils/logger';
 import { errorHandler } from './middlewares/error.middleware';
 import routes from './routes';
+import { seedDatabase } from './utils/seed';
 
 // Initialize logger
 setupLogger();
@@ -17,7 +18,7 @@ const app = express();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: config.corsOrigins.split(','),
+  origin: ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true
 }));
 app.use(express.json());
@@ -53,6 +54,20 @@ const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDB();
+    
+    // Seed the database with initial data
+    await seedDatabase();
+    
+    // Add global unhandled exception handlers
+    process.on('uncaughtException', (error) => {
+      logger.error('Uncaught Exception:', error);
+      console.error('Uncaught Exception details:', error);
+    });
+    
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      console.error('Unhandled Rejection details:', reason);
+    });
     
     app.listen(PORT, HOST, () => {
       logger.info(`Server running on http://${HOST}:${PORT}`);
