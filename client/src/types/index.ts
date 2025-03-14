@@ -19,6 +19,7 @@ export interface Item {
   userId: string;
   imageUrl?: string;
   status: 'available' | 'sold' | 'reserved';
+  location?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -12,6 +12,10 @@ import ItemDetailPage from './pages/ItemDetailPage';
 import ItemFormPage from './pages/ItemFormPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -35,6 +39,10 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/items" element={<ItemsPage />} />
             <Route path="/items/:id" element={<ItemDetailPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
             
             {/* Protected routes */}
             <Route 

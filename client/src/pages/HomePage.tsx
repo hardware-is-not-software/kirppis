@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/Layout';
 import { getAllItems } from '../services/item.service';
 import { getAllCategories } from '../services/category.service';
 import { Category, Item } from '../types';
 
+const DEFAULT_LOCATIONS = ['Main Office', 'Branch Office', 'Remote'];
+
 const HomePage = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
   // Fetch recent items
   const { 
@@ -29,6 +32,15 @@ const HomePage = () => {
 
   const items = itemsResponse?.items || [];
   const categories = categoriesResponse?.categories || [];
+
+  const handleLocationClick = (location: string) => {
+    if (location === selectedLocation) {
+      setSelectedLocation(null);
+    } else {
+      setSelectedLocation(location);
+      navigate(`/items?location=${encodeURIComponent(location)}`);
+    }
+  };
 
   return (
     <Layout>
@@ -57,30 +69,24 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* Categories Section */}
+        {/* Locations Section */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Categories</h2>
-          {categoriesLoading ? (
-            <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {categories.slice(0, 8).map((category: Category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id === selectedCategory ? null : category.id)}
-                  className={`p-4 rounded-lg text-center transition-all ${
-                    category.id === selectedCategory
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-                  }`}
-                >
-                  {category.name}
-                </button>
-              ))}
-            </div>
-          )}
+          <h2 className="text-2xl font-bold mb-6">Locations</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {DEFAULT_LOCATIONS.map((location) => (
+              <button
+                key={location}
+                onClick={() => handleLocationClick(location)}
+                className={`p-4 rounded-lg text-center transition-all ${
+                  location === selectedLocation
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                }`}
+              >
+                {location}
+              </button>
+            ))}
+          </div>
         </section>
 
         {/* Recent Items Section */}

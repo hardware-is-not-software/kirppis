@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/Layout';
 import { getItemById } from '../services/item.service';
+import { getUserById } from '../services/user.service';
 import { useAuth } from '../context/AuthContext';
-import { ItemResponse } from '../types';
+import { ItemResponse, User } from '../types';
 
 const ItemDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showContactInfo, setShowContactInfo] = useState(false);
+  const [sellerInfo, setSellerInfo] = useState<User | null>(null);
+  const [isLoadingSeller, setIsLoadingSeller] = useState(false);
+  const [sellerError, setSellerError] = useState<Error | null>(null);
 
   const { 
     data: itemResponse, 
@@ -24,12 +28,33 @@ const ItemDetailPage = () => {
 
   const item = itemResponse?.item;
 
+  const fetchSellerInfo = async (sellerId: string) => {
+    if (!sellerId) return;
+    
+    setIsLoadingSeller(true);
+    setSellerError(null);
+    
+    try {
+      const response = await getUserById(sellerId);
+      setSellerInfo(response.data.user);
+    } catch (err) {
+      console.error('Error fetching seller info:', err);
+      setSellerError(err instanceof Error ? err : new Error('Failed to fetch seller information'));
+    } finally {
+      setIsLoadingSeller(false);
+    }
+  };
+
   const handleReserveItem = () => {
     if (!user) {
       navigate('/login', { state: { from: `/items/${id}` } });
       return;
     }
-    // In a real app, this would call an API to reserve the item
+    
+    if (item && item.userId) {
+      fetchSellerInfo(item.userId);
+    }
+    
     setShowContactInfo(true);
   };
 
@@ -111,6 +136,12 @@ const ItemDetailPage = () => {
                   <h3 className="text-sm font-medium text-gray-500">Listed</h3>
                   <p className="text-gray-900">{new Date(item.createdAt).toLocaleDateString()}</p>
                 </div>
+                {item.location && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Location</h3>
+                    <p className="text-gray-900">{item.location}</p>
+                  </div>
+                )}
               </div>
               
               {item.status === 'available' && (
@@ -127,12 +158,29 @@ const ItemDetailPage = () => {
               {showContactInfo && (
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <h3 className="text-lg font-semibold mb-2">Contact Information</h3>
-                  <p className="mb-1">
-                    <span className="font-medium">Email:</span> seller@example.com
-                  </p>
-                  <p>
-                    <span className="font-medium">Phone:</span> (123) 456-7890
-                  </p>
+                  
+                  {isLoadingSeller ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-blue-500 rounded-full"></div>
+                      <p>Loading seller information...</p>
+                    </div>
+                  ) : sellerError ? (
+                    <div className="text-red-500">
+                      <p>Error loading seller information. Please try again.</p>
+                    </div>
+                  ) : sellerInfo ? (
+                    <>
+                      <p className="mb-1">
+                        <span className="font-medium">Seller:</span> {sellerInfo.name}
+                      </p>
+                      <p className="mb-1">
+                        <span className="font-medium">Email:</span> {sellerInfo.email}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-gray-500">Seller information not available.</p>
+                  )}
+                  
                   <p className="mt-2 text-sm text-gray-600">
                     Please mention that you found this item on Kirppis when contacting the seller.
                   </p>

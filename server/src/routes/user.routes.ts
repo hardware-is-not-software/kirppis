@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllUsers, getUserById, updateUser, deleteUser } from '../controllers/user.controller';
+import { getAllUsers, getUserById, updateUser, deleteUser, changeUserRole } from '../controllers/user.controller';
 import { protect, restrictTo } from '../middlewares/auth.middleware';
 import { UserRole } from '../models/user.model';
 
@@ -21,5 +21,9 @@ router.route('/')
 
 router.route('/:id')
   .delete(deleteUser);
+
+// Route for changing user role (admin only)
+router.route('/:id/role')
+  .patch(changeUserRole);
 
 export default router; 

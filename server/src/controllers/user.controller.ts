@@ -118,4 +118,46 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
   } catch (error) {
     next(error);
   }
+};
+
+/**
+ * Change user role
+ * @route PATCH /api/v1/users/:id/role
+ * @access Private/Admin
+ */
+export const changeUserRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { role } = req.body;
+    
+    if (!role) {
+      return next(new ApiError(400, 'Role is required'));
+    }
+    
+    // Prevent users from changing their own role
+    if (req.params.id === req.user._id.toString()) {
+      return next(new ApiError(403, 'You cannot change your own role'));
+    }
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+    
+    if (!updatedUser) {
+      return next(new ApiError(404, 'User not found'));
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user: updatedUser
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 }; 

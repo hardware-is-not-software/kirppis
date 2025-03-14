@@ -4,7 +4,9 @@ import { User } from '../types';
 export interface UsersResponse {
   status: string;
   results: number;
-  users: User[];
+  data: {
+    users: User[];
+  };
 }
 
 export interface UserResponse {
@@ -58,7 +60,9 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
  */
 export const deleteUser = async (id: string): Promise<{ status: string; message: string }> => {
   try {
+    console.log(`Deleting user with ID: ${id}`);
     const response = await api.delete<{ status: string; message: string }>(`/users/${id}`);
+    console.log('Delete user response:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error deleting user ${id}:`, error);
@@ -71,7 +75,9 @@ export const deleteUser = async (id: string): Promise<{ status: string; message:
  */
 export const changeUserRole = async (id: string, role: string): Promise<UserResponse> => {
   try {
+    console.log(`Changing role for user ${id} to ${role}`);
     const response = await api.patch<UserResponse>(`/users/${id}/role`, { role });
+    console.log('Change role response:', response.data);
     return response.data;
   } catch (error) {
     console.error(`Error changing role for user ${id}:`, error);
