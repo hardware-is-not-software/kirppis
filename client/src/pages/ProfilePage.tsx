@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
-import { getUserItems } from '../services/item.service';
+import { getUserItems, updateItemStatus, deleteItem } from '../services/item.service';
 import { Item } from '../types';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'items' | 'settings'>('items');
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch user's items
   const { 
@@ -24,6 +27,42 @@ const ProfilePage = () => {
 
   // Get user items from the response
   const userItems = itemsResponse?.items || [];
+
+  // Mutation for updating item status
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => 
+      updateItemStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userItems'] });
+    }
+  });
+
+  // Mutation for deleting an item
+  const deleteItemMutation = useMutation({
+    mutationFn: (id: string) => deleteItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userItems'] });
+      setShowDeleteConfirm(false);
+    }
+  });
+
+  // Handle status change
+  const handleStatusChange = (id: string, status: string) => {
+    updateStatusMutation.mutate({ id, status });
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = (id: string) => {
+    setItemToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  // Handle delete item
+  const handleDeleteItem = () => {
+    if (itemToDelete) {
+      deleteItemMutation.mutate(itemToDelete);
+    }
+  };
 
   // Handle logout
   const handleLogout = () => {
@@ -146,13 +185,19 @@ const ProfilePage = () => {
                         <div className="p-4">
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="text-lg font-semibold truncate">{item.title}</h3>
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              item.status === 'available' ? 'bg-green-100 text-green-800' :
-                              item.status === 'reserved' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                            </span>
+                            <select
+                              value={item.status}
+                              onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                              className={`text-xs px-2 py-1 rounded-full border ${
+                                item.status === 'available' ? 'bg-green-100 text-green-800 border-green-200' :
+                                item.status === 'reserved' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                'bg-red-100 text-red-800 border-red-200'
+                              }`}
+                            >
+                              <option value="available">Available</option>
+                              <option value="reserved">Reserved</option>
+                              <option value="sold">Sold</option>
+                            </select>
                           </div>
                           <p className="text-blue-600 font-bold mb-2">${item.price.toFixed(2)}</p>
                           <p className="text-gray-500 text-sm mb-4">
@@ -171,6 +216,12 @@ const ProfilePage = () => {
                             >
                               Edit
                             </Link>
+                            <button
+                              onClick={() => handleDeleteConfirm(item.id)}
+                              className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -234,6 +285,31 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Confirm Deletion</h3>
+            <p className="mb-6">Are you sure you want to delete this item? This action cannot be undone.</p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteItem}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                disabled={deleteItemMutation.isPending}
+              >
+                {deleteItemMutation.isPending ? 'Deleting...' : 'Delete Item'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

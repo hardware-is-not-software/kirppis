@@ -9,6 +9,7 @@ import { Item, Category } from '../types';
 const ItemsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['available', 'reserved', 'sold']);
   const [sortBy, setSortBy] = useState('newest');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
 
@@ -35,15 +36,27 @@ const ItemsPage = () => {
 
   const categories: Category[] = categoriesResponse?.categories || [];
 
+  // Handle status filter change
+  const handleStatusChange = (status: string) => {
+    if (selectedStatuses.includes(status)) {
+      // Remove status if already selected
+      setSelectedStatuses(selectedStatuses.filter(s => s !== status));
+    } else {
+      // Add status if not selected
+      setSelectedStatuses([...selectedStatuses, status]);
+    }
+  };
+
   // Filter and sort items
   const filteredItems = items.filter((item: Item) => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory ? item.categoryId === selectedCategory : true;
+    const matchesStatus = selectedStatuses.includes(item.status);
     const matchesMinPrice = priceRange.min ? item.price >= Number(priceRange.min) : true;
     const matchesMaxPrice = priceRange.max ? item.price <= Number(priceRange.max) : true;
     
-    return matchesSearch && matchesCategory && matchesMinPrice && matchesMaxPrice;
+    return matchesSearch && matchesCategory && matchesStatus && matchesMinPrice && matchesMaxPrice;
   });
 
   // Sort items
@@ -63,6 +76,7 @@ const ItemsPage = () => {
   const handleClearFilters = () => {
     setSearchTerm('');
     setSelectedCategory('');
+    setSelectedStatuses(['available', 'reserved', 'sold']);
     setSortBy('newest');
     setPriceRange({ min: '', max: '' });
   };
@@ -112,6 +126,42 @@ const ItemsPage = () => {
                   ))
                 )}
               </select>
+            </div>
+            
+            {/* Status filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedStatuses.includes('available')}
+                    onChange={() => handleStatusChange('available')}
+                    className="form-checkbox h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Available</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedStatuses.includes('reserved')}
+                    onChange={() => handleStatusChange('reserved')}
+                    className="form-checkbox h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Reserved</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedStatuses.includes('sold')}
+                    onChange={() => handleStatusChange('sold')}
+                    className="form-checkbox h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Sold</span>
+                </label>
+              </div>
             </div>
             
             {/* Price range */}

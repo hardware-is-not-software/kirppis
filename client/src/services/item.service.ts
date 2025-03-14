@@ -199,7 +199,8 @@ export const updateItem = async (id: string, itemData: Partial<Item>): Promise<I
 export const updateItemStatus = async (id: string, status: string): Promise<ItemResponse> => {
   try {
     console.log('Updating item status:', id, status);
-    const response = await api.patch<any>(`/items/${id}/status`, { status });
+    // Use the regular update endpoint with just the status field
+    const response = await api.patch<any>(`/items/${id}`, { status });
     console.log('Update item status response:', response.data);
     
     // Transform the response to match our expected format
