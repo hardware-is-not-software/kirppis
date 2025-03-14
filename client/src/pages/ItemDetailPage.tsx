@@ -78,7 +78,7 @@ const ItemDetailPage = () => {
           <div className="md:flex">
             <div className="md:w-1/2">
               <img
-                src={item.imageUrl || 'https://via.placeholder.com/600x400?text=No+Image'}
+                src={item.imageUrl || '/images/No_Image_Available.jpg'}
                 alt={item.title}
                 className="w-full h-96 object-cover"
               />

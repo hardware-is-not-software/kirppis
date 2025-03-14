@@ -189,9 +189,9 @@ const ItemsPage = () => {
                 key={item.id}
                 className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow duration-300"
               >
-                <div className="h-48 overflow-hidden">
+                <div className="h-40 overflow-hidden">
                   <img
-                    src={item.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}
+                    src={item.imageUrl || '/images/No_Image_Available.jpg'}
                     alt={item.title}
                     className="w-full h-full object-cover"
                   />

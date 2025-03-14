@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
-import { getAllItems } from '../services/item.service';
+import { getUserItems } from '../services/item.service';
 import { Item } from '../types';
 
 const ProfilePage = () => {
@@ -17,14 +17,12 @@ const ProfilePage = () => {
     isLoading: itemsLoading, 
     error: itemsError 
   } = useQuery({
-    queryKey: ['userItems', user?.email],
-    queryFn: () => getAllItems(),
+    queryKey: ['userItems', user?._id],
+    queryFn: () => getUserItems(),
     enabled: !!user
   });
 
-  // Filter items to only show the current user's items
-  // In a real app, we would have a proper userId to filter by
-  // For now, we'll just show all items as if they belong to the user
+  // Get user items from the response
   const userItems = itemsResponse?.items || [];
 
   // Handle logout
@@ -140,7 +138,7 @@ const ProfilePage = () => {
                       <div key={item.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                         <div className="h-40 overflow-hidden">
                           <img
-                            src={item.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}
+                            src={item.imageUrl || '/images/No_Image_Available.jpg'}
                             alt={item.title}
                             className="w-full h-full object-cover"
                           />

@@ -14,7 +14,7 @@ export interface Item {
   title: string;
   description: string;
   price: number;
-  condition: string;
+  condition: 'new' | 'like_new' | 'good' | 'fair' | 'poor';
   categoryId: string;
   userId: string;
   imageUrl?: string;

@@ -18,7 +18,7 @@ const ItemFormPage = () => {
     title: '',
     description: '',
     price: 0,
-    condition: 'New',
+    condition: 'new',
     categoryId: '',
     imageUrl: '',
     status: 'available',
@@ -140,19 +140,45 @@ const ItemFormPage = () => {
     setIsSubmitting(true);
     
     try {
+      // Create a copy of the form data with the correct field names for the API
+      const apiData = {
+        title: formData.title,
+        description: formData.description,
+        price: formData.price,
+        condition: formData.condition,
+        category: formData.categoryId, // Map categoryId to category for the API
+        status: formData.status,
+        images: formData.imageUrl ? [formData.imageUrl] : []
+      };
+      
+      console.log('Sending data to API:', apiData);
+      
       if (isEditMode) {
-        await updateItem(id as string, formData);
+        await updateItem(id as string, apiData);
         navigate(`/items/${id}`);
       } else {
-        const response = await createItem(formData);
+        const response = await createItem(apiData);
         navigate(`/items/${response.item.id}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving item:', error);
-      setErrors({
-        ...errors,
-        submit: 'Failed to save item. Please try again.'
-      });
+      // Log more detailed error information if available
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        
+        // Set a more specific error message if available
+        const errorMessage = error.response.data?.message || 'Failed to save item. Please try again.';
+        setErrors({
+          ...errors,
+          submit: errorMessage
+        });
+      } else {
+        setErrors({
+          ...errors,
+          submit: 'Failed to save item. Please try again.'
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -251,11 +277,11 @@ const ItemFormPage = () => {
                   onChange={handleChange}
                   className={`w-full p-2 border rounded ${errors.condition ? 'border-red-500' : 'border-gray-300'}`}
                 >
-                  <option value="New">New</option>
-                  <option value="Like New">Like New</option>
-                  <option value="Good">Good</option>
-                  <option value="Fair">Fair</option>
-                  <option value="Poor">Poor</option>
+                  <option value="new">New</option>
+                  <option value="like_new">Like New</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
                 </select>
                 {errors.condition && (
                   <p className="text-red-500 text-sm mt-1">{errors.condition}</p>
