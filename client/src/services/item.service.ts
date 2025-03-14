@@ -1,6 +1,34 @@
 import { Item, ItemsResponse, ItemResponse } from '../types';
 import api from './api';
 
+/**
+ * Upload an image file
+ */
+export const uploadImage = async (file: File): Promise<string> => {
+  try {
+    // Create a FormData object to send the file
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    console.log('Uploading image:', file.name);
+    
+    // Send the file to the server
+    const response = await api.post<{ status: string; data: { imageUrl: string } }>('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    console.log('Upload response:', response.data);
+    
+    // Return the URL of the uploaded image
+    return response.data.data.imageUrl;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
+};
+
 // Get all items with optional pagination, sorting, and filtering
 export const getAllItems = async (
   page = 1, 
@@ -129,6 +157,7 @@ export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse>
     const serverItemData = {
       ...itemData,
       category: itemData.categoryId, // Map categoryId to category for the server
+      images: itemData.imageUrl ? [itemData.imageUrl] : [], // Convert imageUrl to images array
     };
     
     console.log('Creating item with data:', serverItemData);
@@ -170,6 +199,7 @@ export const updateItem = async (id: string, itemData: Partial<Item>): Promise<I
     const serverItemData = {
       ...itemData,
       category: itemData.categoryId, // Map categoryId to category for the server
+      images: itemData.imageUrl ? [itemData.imageUrl] : undefined, // Convert imageUrl to images array if present
     };
     
     console.log('Updating item with data:', serverItemData);

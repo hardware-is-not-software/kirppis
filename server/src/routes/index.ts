@@ -3,6 +3,7 @@ import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import itemRoutes from './item.routes';
 import categoryRoutes from './category.routes';
+import uploadRoutes from './upload.routes';
 import { ApiError } from '../middlewares/error.middleware';
 
 const router = Router();
@@ -21,6 +22,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/items', itemRoutes);
 router.use('/categories', categoryRoutes);
+router.use('/upload', uploadRoutes);
 
 // 404 handler for undefined routes
 router.all('*', (req, res, next) => {

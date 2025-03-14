@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '../components/Layout';
-import { getItemById, createItem, updateItem } from '../services/item.service';
+import { getItemById, createItem, updateItem, uploadImage } from '../services/item.service';
 import { getAllCategories } from '../services/category.service';
 import { useAuth } from '../context/AuthContext';
 import { Item, Category } from '../types';
@@ -87,17 +87,39 @@ const ItemFormPage = () => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // For now, just use a placeholder or URL.createObjectURL
-      // In a real app, you'd upload this to a server
-      const imageUrl = URL.createObjectURL(file);
-      setPreviewImage(imageUrl);
-      setFormData({
-        ...formData,
-        imageUrl: '/images/No_Image_Available.jpg' // Placeholder until we implement file uploads
-      });
+      try {
+        // Show preview immediately for better UX
+        const previewUrl = URL.createObjectURL(file);
+        setPreviewImage(previewUrl);
+        
+        // Set loading state if needed
+        setErrors({
+          ...errors,
+          image: ''
+        });
+        
+        // For now, just use the preview URL
+        // In a production app, you would upload to a server using:
+        // const imageUrl = await uploadImage(file);
+        setFormData({
+          ...formData,
+          imageUrl: previewUrl // Use the preview URL for now
+        });
+        
+        console.log('Image selected:', previewUrl);
+      } catch (error) {
+        console.error('Error handling image:', error);
+        setErrors({
+          ...errors,
+          image: 'Failed to process image. Please try again.'
+        });
+        
+        // Reset preview if there's an error
+        setPreviewImage(null);
+      }
     }
   };
 
