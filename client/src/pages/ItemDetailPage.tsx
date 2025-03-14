@@ -103,9 +103,26 @@ const ItemDetailPage = () => {
           <div className="md:flex">
             <div className="md:w-1/2">
               <img
-                src={item.imageUrl || '/images/No_Image_Available.jpg'}
+                src={item.imageUrl ? 
+                  (item.imageUrl.startsWith('http') ? 
+                    item.imageUrl : 
+                    `${window.location.origin}${item.imageUrl}`
+                  ) : 
+                  '/images/No_Image_Available.svg'
+                }
                 alt={item.title}
                 className="w-full h-96 object-cover"
+                onError={(e) => {
+                  console.error('Image failed to load:', item.imageUrl);
+                  // Try the direct backend URL as a fallback
+                  if (item.imageUrl && !e.currentTarget.src.includes('localhost:5000')) {
+                    console.log('Trying fallback to direct backend URL');
+                    e.currentTarget.src = `http://localhost:5000${item.imageUrl}`;
+                  } else {
+                    e.currentTarget.src = '/images/No_Image_Available.svg';
+                    e.currentTarget.onerror = null;
+                  }
+                }}
               />
             </div>
             <div className="md:w-1/2 p-6">

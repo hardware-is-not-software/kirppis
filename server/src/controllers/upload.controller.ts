@@ -26,8 +26,8 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
     // Generate a unique filename
     const filename = `${uuidv4()}${path.extname(file.originalname)}`;
     
-    // Define the upload directory
-    const uploadDir = path.join(__dirname, '../../../uploads');
+    // Define the upload directory - use environment variable if available
+    const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../../uploads');
     
     // Create the directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
@@ -44,7 +44,7 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
     const fileUrl = `/uploads/${filename}`;
     
     // Log the upload
-    logger.info(`File uploaded: ${fileUrl}`);
+    logger.info(`File uploaded: ${fileUrl} to ${uploadDir}`);
     
     // Return the file URL
     res.status(200).json({

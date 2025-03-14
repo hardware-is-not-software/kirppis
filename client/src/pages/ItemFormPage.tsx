@@ -94,6 +94,7 @@ const ItemFormPage = () => {
         // Show preview immediately for better UX
         const previewUrl = URL.createObjectURL(file);
         setPreviewImage(previewUrl);
+        console.log('Preview URL created:', previewUrl);
         
         // Set loading state if needed
         setErrors({
@@ -101,15 +102,35 @@ const ItemFormPage = () => {
           image: ''
         });
         
-        // For now, just use the preview URL
-        // In a production app, you would upload to a server using:
-        // const imageUrl = await uploadImage(file);
-        setFormData({
-          ...formData,
-          imageUrl: previewUrl // Use the preview URL for now
-        });
-        
-        console.log('Image selected:', previewUrl);
+        // Upload the image to the server
+        try {
+          console.log('Starting image upload for file:', file.name, 'size:', file.size, 'type:', file.type);
+          const imageUrl = await uploadImage(file);
+          
+          console.log('Image uploaded successfully, server returned URL:', imageUrl);
+          
+          // Update form data with the real image URL from the server
+          setFormData({
+            ...formData,
+            imageUrl: imageUrl
+          });
+          
+          console.log('Form data updated with image URL:', imageUrl);
+        } catch (uploadError) {
+          console.error('Error uploading image to server:', uploadError);
+          // Still keep the local preview but show an error
+          setErrors({
+            ...errors,
+            image: 'Image preview available, but upload to server failed. The image will not be saved with the item.'
+          });
+          
+          // Use the preview URL as a fallback
+          setFormData({
+            ...formData,
+            imageUrl: previewUrl
+          });
+          console.log('Using preview URL as fallback:', previewUrl);
+        }
       } catch (error) {
         console.error('Error handling image:', error);
         setErrors({
@@ -163,6 +184,10 @@ const ItemFormPage = () => {
     setIsSubmitting(true);
     
     try {
+      // Log the form data before submission
+      console.log('Submitting form with data:', formData);
+      console.log('Image URL before submission:', formData.imageUrl);
+      
       if (isEditMode) {
         // Update existing item
         await updateItem(id as string, formData);
@@ -173,6 +198,7 @@ const ItemFormPage = () => {
           ...formData,
           userId: user?.id // Set the current user as the owner
         });
+        console.log('Item created successfully:', response);
         navigate(`/items/${response.item.id}`);
       }
     } catch (error) {
@@ -369,9 +395,23 @@ const ItemFormPage = () => {
                       <div className="w-full h-40 mb-3 border-2 border-dashed border-gray-300 rounded-lg flex justify-center items-center overflow-hidden bg-gray-50">
                         {previewImage ? (
                           <img
-                            src={previewImage}
+                            src={previewImage.startsWith('blob:') ? 
+                              previewImage : 
+                              (previewImage.startsWith('http') ? 
+                                previewImage : 
+                                `${window.location.origin}${previewImage}`
+                              )
+                            }
                             alt="Preview"
                             className="w-full h-full object-contain"
+                            onError={(e) => {
+                              console.error('Preview image failed to load:', previewImage);
+                              // Try the direct backend URL as a fallback
+                              if (previewImage && !previewImage.startsWith('blob:') && !e.currentTarget.src.includes('localhost:5000')) {
+                                console.log('Trying fallback to direct backend URL');
+                                e.currentTarget.src = `http://localhost:5000${previewImage}`;
+                              }
+                            }}
                           />
                         ) : (
                           <div className="text-center p-4">

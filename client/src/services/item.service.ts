@@ -2,6 +2,22 @@ import { Item, ItemsResponse, ItemResponse } from '../types';
 import api from './api';
 
 /**
+ * Helper function to ensure image URLs are properly formatted
+ */
+const formatImageUrl = (url: string | undefined): string => {
+  if (!url) return '';
+  
+  // If it's already a full URL, return it as is
+  if (url.startsWith('http')) return url;
+  
+  // If it doesn't start with a slash, add one
+  if (!url.startsWith('/')) return `/${url}`;
+  
+  // Otherwise, return the URL as is
+  return url;
+};
+
+/**
  * Upload an image file
  */
 export const uploadImage = async (file: File): Promise<string> => {
@@ -22,7 +38,11 @@ export const uploadImage = async (file: File): Promise<string> => {
     console.log('Upload response:', response.data);
     
     // Return the URL of the uploaded image
-    return response.data.data.imageUrl;
+    const imageUrl = response.data.data.imageUrl;
+    console.log('Final image URL to be returned:', imageUrl);
+    
+    // Ensure the URL is properly formatted
+    return formatImageUrl(imageUrl);
   } catch (error) {
     console.error('Error uploading image:', error);
     throw error;
@@ -47,7 +67,7 @@ export const getAllItems = async (
       condition: item.condition,
       categoryId: typeof item.category === 'object' ? item.category._id : item.category,
       userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
-      imageUrl: item.images?.[0] || '',
+      imageUrl: formatImageUrl(item.images?.[0] || ''),
       status: item.status,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt
@@ -97,7 +117,7 @@ export const getUserItems = async (
       condition: item.condition,
       categoryId: typeof item.category === 'object' ? item.category._id : item.category,
       userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
-      imageUrl: item.images?.[0] || '',
+      imageUrl: formatImageUrl(item.images?.[0] || ''),
       status: item.status,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt
@@ -136,7 +156,7 @@ export const getItemById = async (id: string): Promise<ItemResponse> => {
         condition: item.condition,
         categoryId: typeof item.category === 'object' ? item.category._id : item.category,
         userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
-        imageUrl: item.images?.[0] || '',
+        imageUrl: formatImageUrl(item.images?.[0] || ''),
         status: item.status,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt
@@ -153,11 +173,18 @@ export const getItemById = async (id: string): Promise<ItemResponse> => {
 // Create a new item
 export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse> => {
   try {
+    // Ensure imageUrl is properly formatted
+    let imageUrl = formatImageUrl(itemData.imageUrl);
+    if (imageUrl && imageUrl.startsWith('blob:')) {
+      console.warn('Attempted to save blob URL as image URL. This is likely an error.');
+      imageUrl = '';
+    }
+    
     // Map client-side field names to server-side field names
     const serverItemData = {
       ...itemData,
       category: itemData.categoryId, // Map categoryId to category for the server
-      images: itemData.imageUrl ? [itemData.imageUrl] : [], // Convert imageUrl to images array
+      images: imageUrl ? [imageUrl] : [], // Convert imageUrl to images array
     };
     
     console.log('Creating item with data:', serverItemData);
@@ -174,7 +201,7 @@ export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse>
         condition: response.data.data.item.condition,
         categoryId: response.data.data.item.category._id || response.data.data.item.category,
         userId: response.data.data.item.seller._id || response.data.data.item.seller,
-        imageUrl: response.data.data.item.images?.[0] || '',
+        imageUrl: formatImageUrl(response.data.data.item.images?.[0] || ''),
         status: response.data.data.item.status,
         createdAt: response.data.data.item.createdAt,
         updatedAt: response.data.data.item.updatedAt
@@ -195,11 +222,18 @@ export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse>
 // Update an existing item
 export const updateItem = async (id: string, itemData: Partial<Item>): Promise<ItemResponse> => {
   try {
+    // Ensure imageUrl is properly formatted
+    let imageUrl = formatImageUrl(itemData.imageUrl);
+    if (imageUrl && imageUrl.startsWith('blob:')) {
+      console.warn('Attempted to save blob URL as image URL. This is likely an error.');
+      imageUrl = '';
+    }
+    
     // Map client-side field names to server-side field names
     const serverItemData = {
       ...itemData,
       category: itemData.categoryId, // Map categoryId to category for the server
-      images: itemData.imageUrl ? [itemData.imageUrl] : undefined, // Convert imageUrl to images array if present
+      images: imageUrl ? [imageUrl] : undefined, // Convert imageUrl to images array if present
     };
     
     console.log('Updating item with data:', serverItemData);
@@ -217,7 +251,7 @@ export const updateItem = async (id: string, itemData: Partial<Item>): Promise<I
         condition: item.condition,
         categoryId: typeof item.category === 'object' ? item.category._id : item.category,
         userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
-        imageUrl: item.images?.[0] || '',
+        imageUrl: formatImageUrl(item.images?.[0] || ''),
         status: item.status,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt
