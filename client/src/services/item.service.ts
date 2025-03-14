@@ -125,8 +125,14 @@ export const getItemById = async (id: string): Promise<ItemResponse> => {
 // Create a new item
 export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse> => {
   try {
-    console.log('Creating item with data:', itemData);
-    const response = await api.post<any>('/items', itemData);
+    // Map client-side field names to server-side field names
+    const serverItemData = {
+      ...itemData,
+      category: itemData.categoryId, // Map categoryId to category for the server
+    };
+    
+    console.log('Creating item with data:', serverItemData);
+    const response = await api.post<any>('/items', serverItemData);
     console.log('Create item response:', response.data);
     
     // Transform the response to match our expected format
@@ -160,8 +166,14 @@ export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse>
 // Update an existing item
 export const updateItem = async (id: string, itemData: Partial<Item>): Promise<ItemResponse> => {
   try {
-    console.log('Updating item with data:', itemData);
-    const response = await api.patch<any>(`/items/${id}`, itemData);
+    // Map client-side field names to server-side field names
+    const serverItemData = {
+      ...itemData,
+      category: itemData.categoryId, // Map categoryId to category for the server
+    };
+    
+    console.log('Updating item with data:', serverItemData);
+    const response = await api.patch<any>(`/items/${id}`, serverItemData);
     console.log('Update item response:', response.data);
     
     // Transform the response to match our expected format
