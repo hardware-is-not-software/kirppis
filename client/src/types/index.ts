@@ -18,6 +18,7 @@ export interface Item {
   categoryId: string;
   userId: string;
   imageUrl?: string;
+  imageUrls?: string[];
   status: 'available' | 'sold' | 'reserved';
   location?: string;
   createdAt: string;

@@ -15,6 +15,7 @@ const ItemDetailPage = () => {
   const [sellerInfo, setSellerInfo] = useState<User | null>(null);
   const [isLoadingSeller, setIsLoadingSeller] = useState(false);
   const [sellerError, setSellerError] = useState<Error | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const { 
     data: itemResponse, 
@@ -27,6 +28,13 @@ const ItemDetailPage = () => {
   });
 
   const item = itemResponse?.item;
+  
+  // Process images for display
+  const images = item ? 
+    (item.imageUrls && item.imageUrls.length > 0 ? 
+      item.imageUrls : 
+      (item.imageUrl ? [item.imageUrl] : [])
+    ) : [];
 
   const fetchSellerInfo = async (sellerId: string) => {
     if (!sellerId) return;
@@ -87,6 +95,13 @@ const ItemDetailPage = () => {
     );
   }
 
+  // Format image URL for display
+  const formatImageUrl = (url: string) => {
+    if (!url) return '/images/No_Image_Available.svg';
+    if (url.startsWith('http')) return url;
+    return `${window.location.origin}${url}`;
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -102,28 +117,81 @@ const ItemDetailPage = () => {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="md:flex">
             <div className="md:w-1/2">
-              <img
-                src={item.imageUrl ? 
-                  (item.imageUrl.startsWith('http') ? 
-                    item.imageUrl : 
-                    `${window.location.origin}${item.imageUrl}`
-                  ) : 
-                  '/images/No_Image_Available.svg'
-                }
-                alt={item.title}
-                className="w-full h-96 object-cover"
-                onError={(e) => {
-                  console.error('Image failed to load:', item.imageUrl);
-                  // Try the direct backend URL as a fallback
-                  if (item.imageUrl && !e.currentTarget.src.includes('localhost:5000')) {
-                    console.log('Trying fallback to direct backend URL');
-                    e.currentTarget.src = `http://localhost:5000${item.imageUrl}`;
-                  } else {
-                    e.currentTarget.src = '/images/No_Image_Available.svg';
-                    e.currentTarget.onerror = null;
-                  }
-                }}
-              />
+              {/* Main image display */}
+              <div className="relative">
+                <img
+                  src={images.length > 0 ? formatImageUrl(images[selectedImageIndex]) : '/images/No_Image_Available.svg'}
+                  alt={item.title}
+                  className="w-full h-96 object-contain bg-gray-50"
+                  onError={(e) => {
+                    console.error('Image failed to load:', images[selectedImageIndex]);
+                    // Try the direct backend URL as a fallback
+                    if (images[selectedImageIndex] && !e.currentTarget.src.includes('localhost:5000')) {
+                      console.log('Trying fallback to direct backend URL');
+                      e.currentTarget.src = `http://localhost:5000${images[selectedImageIndex]}`;
+                    } else {
+                      e.currentTarget.src = '/images/No_Image_Available.svg';
+                      e.currentTarget.onerror = null;
+                    }
+                  }}
+                />
+                
+                {/* Navigation arrows for images */}
+                {images.length > 1 && (
+                  <>
+                    <button 
+                      onClick={() => setSelectedImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1))}
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 rounded-full p-2 shadow-md hover:bg-opacity-100 transition-all"
+                      aria-label="Previous image"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button 
+                      onClick={() => setSelectedImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1))}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-70 rounded-full p-2 shadow-md hover:bg-opacity-100 transition-all"
+                      aria-label="Next image"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+                
+                {/* Image counter */}
+                {images.length > 1 && (
+                  <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-sm px-2 py-1 rounded">
+                    {selectedImageIndex + 1} / {images.length}
+                  </div>
+                )}
+              </div>
+              
+              {/* Thumbnail gallery */}
+              {images.length > 1 && (
+                <div className="flex overflow-x-auto space-x-2 mt-2 pb-2">
+                  {images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`flex-shrink-0 w-16 h-16 rounded border-2 ${
+                        selectedImageIndex === index ? 'border-blue-500' : 'border-transparent'
+                      } overflow-hidden focus:outline-none`}
+                    >
+                      <img
+                        src={formatImageUrl(image)}
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/images/No_Image_Available.svg';
+                          e.currentTarget.onerror = null;
+                        }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="md:w-1/2 p-6">
               <div className="flex justify-between items-start">

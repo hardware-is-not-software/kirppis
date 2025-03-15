@@ -22,13 +22,14 @@ const ItemFormPage = () => {
     price: 0,
     condition: 'new',
     categoryId: '',
-    imageUrl: '',
+    imageUrls: [],
     status: 'available',
     location: DEFAULT_LOCATIONS[0],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Fetch item data if in edit mode
   const { 
@@ -43,10 +44,16 @@ const ItemFormPage = () => {
   // Update form data when item data is loaded
   useEffect(() => {
     if (isEditMode && itemResponse?.item) {
-      setFormData(itemResponse.item);
-      if (itemResponse.item.imageUrl) {
-        setPreviewImage(itemResponse.item.imageUrl);
-      }
+      // Convert single imageUrl to imageUrls array if needed
+      const item = itemResponse.item;
+      const imageUrls = item.imageUrls || (item.imageUrl ? [item.imageUrl] : []);
+      
+      setFormData({
+        ...item,
+        imageUrls
+      });
+      
+      setPreviewImages(imageUrls);
     }
   }, [isEditMode, itemResponse]);
 
@@ -88,60 +95,76 @@ const ItemFormPage = () => {
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        // Show preview immediately for better UX
-        const previewUrl = URL.createObjectURL(file);
-        setPreviewImage(previewUrl);
-        console.log('Preview URL created:', previewUrl);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
+    setErrors({
+      ...errors,
+      image: ''
+    });
+
+    try {
+      // Create preview URLs for all selected files
+      const newPreviewUrls: string[] = [];
+      const newImageUrls: string[] = [];
+      
+      // Process each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         
-        // Set loading state if needed
-        setErrors({
-          ...errors,
-          image: ''
-        });
-        
-        // Upload the image to the server
         try {
-          console.log('Starting image upload for file:', file.name, 'size:', file.size, 'type:', file.type);
+          // Create preview immediately for better UX
+          const previewUrl = URL.createObjectURL(file);
+          newPreviewUrls.push(previewUrl);
+          
+          console.log(`Uploading image ${i+1}/${files.length}: ${file.name}`);
+          
+          // Upload the image to the server
           const imageUrl = await uploadImage(file);
+          console.log(`Image ${i+1} uploaded successfully:`, imageUrl);
           
-          console.log('Image uploaded successfully, server returned URL:', imageUrl);
-          
-          // Update form data with the real image URL from the server
-          setFormData({
-            ...formData,
-            imageUrl: imageUrl
-          });
-          
-          console.log('Form data updated with image URL:', imageUrl);
+          // Add to the list of image URLs
+          newImageUrls.push(imageUrl);
         } catch (uploadError) {
-          console.error('Error uploading image to server:', uploadError);
-          // Still keep the local preview but show an error
-          setErrors({
-            ...errors,
-            image: 'Image preview available, but upload to server failed. The image will not be saved with the item.'
-          });
-          
-          // Use the preview URL as a fallback
-          setFormData({
-            ...formData,
-            imageUrl: previewUrl
-          });
-          console.log('Using preview URL as fallback:', previewUrl);
+          console.error(`Error uploading image ${i+1}:`, uploadError);
+          setErrors(prev => ({
+            ...prev,
+            image: `Error uploading image ${file.name}. Some images may not be saved.`
+          }));
         }
-      } catch (error) {
-        console.error('Error handling image:', error);
-        setErrors({
-          ...errors,
-          image: 'Failed to process image. Please try again.'
-        });
-        
-        // Reset preview if there's an error
-        setPreviewImage(null);
       }
+      
+      // Update preview images
+      setPreviewImages(prev => [...prev, ...newPreviewUrls]);
+      
+      // Update form data with the new image URLs
+      setFormData(prev => ({
+        ...prev,
+        imageUrls: [...(prev.imageUrls || []), ...newImageUrls]
+      }));
+      
+      console.log('All uploads complete. Image URLs:', [...(formData.imageUrls || []), ...newImageUrls]);
+    } catch (error) {
+      console.error('Error handling images:', error);
+      setErrors({
+        ...errors,
+        image: 'Failed to process images. Please try again.'
+      });
+    } finally {
+      setIsUploading(false);
     }
+  };
+
+  const removeImage = (index: number) => {
+    // Remove from preview images
+    setPreviewImages(prev => prev.filter((_, i) => i !== index));
+    
+    // Remove from form data
+    setFormData(prev => ({
+      ...prev,
+      imageUrls: (prev.imageUrls || []).filter((_, i) => i !== index)
+    }));
   };
 
   const validateForm = (): boolean => {
@@ -186,16 +209,23 @@ const ItemFormPage = () => {
     try {
       // Log the form data before submission
       console.log('Submitting form with data:', formData);
-      console.log('Image URL before submission:', formData.imageUrl);
+      console.log('Image URLs before submission:', formData.imageUrls);
+      
+      // Prepare data for submission
+      const submissionData = {
+        ...formData,
+        // For backward compatibility, set the first image as imageUrl
+        imageUrl: formData.imageUrls && formData.imageUrls.length > 0 ? formData.imageUrls[0] : ''
+      };
       
       if (isEditMode) {
         // Update existing item
-        await updateItem(id as string, formData);
+        await updateItem(id as string, submissionData);
         navigate(`/items/${id}`);
       } else {
         // Create new item
         const response = await createItem({
-          ...formData,
+          ...submissionData,
           userId: user?.id // Set the current user as the owner
         });
         console.log('Item created successfully:', response);
@@ -389,30 +419,60 @@ const ItemFormPage = () => {
                   {/* Image upload */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Image
+                      Images
                     </label>
-                    <div className="mt-1 flex flex-col items-center">
-                      <div className="w-full h-40 mb-3 border-2 border-dashed border-gray-300 rounded-lg flex justify-center items-center overflow-hidden bg-gray-50">
-                        {previewImage ? (
-                          <img
-                            src={previewImage.startsWith('blob:') ? 
-                              previewImage : 
-                              (previewImage.startsWith('http') ? 
-                                previewImage : 
-                                `${window.location.origin}${previewImage}`
-                              )
-                            }
-                            alt="Preview"
-                            className="w-full h-full object-contain"
-                            onError={(e) => {
-                              console.error('Preview image failed to load:', previewImage);
-                              // Try the direct backend URL as a fallback
-                              if (previewImage && !previewImage.startsWith('blob:') && !e.currentTarget.src.includes('localhost:5000')) {
-                                console.log('Trying fallback to direct backend URL');
-                                e.currentTarget.src = `http://localhost:5000${previewImage}`;
+                    
+                    {/* Image preview grid */}
+                    {previewImages.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        {previewImages.map((previewUrl, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={previewUrl.startsWith('blob:') ? 
+                                previewUrl : 
+                                (previewUrl.startsWith('http') ? 
+                                  previewUrl : 
+                                  `${window.location.origin}${previewUrl}`
+                                )
                               }
-                            }}
-                          />
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-24 object-cover rounded border border-gray-300"
+                              onError={(e) => {
+                                console.error('Preview image failed to load:', previewUrl);
+                                if (previewUrl && !previewUrl.startsWith('blob:') && !e.currentTarget.src.includes('localhost:5000')) {
+                                  e.currentTarget.src = `http://localhost:5000${previewUrl}`;
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label="Remove image"
+                            >
+                              ×
+                            </button>
+                            {index === 0 && (
+                              <span className="absolute bottom-1 left-1 bg-blue-500 text-white text-xs px-1 rounded">
+                                Main
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="mt-1 flex flex-col items-center">
+                      <div 
+                        className={`w-full h-40 mb-3 border-2 border-dashed ${
+                          errors.image ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'
+                        } rounded-lg flex justify-center items-center overflow-hidden`}
+                      >
+                        {isUploading ? (
+                          <div className="text-center p-4">
+                            <div className="animate-spin mx-auto h-8 w-8 border-t-2 border-b-2 border-blue-500 rounded-full mb-2"></div>
+                            <p className="text-sm text-gray-500">Uploading images...</p>
+                          </div>
                         ) : (
                           <div className="text-center p-4">
                             <svg
@@ -429,7 +489,10 @@ const ItemFormPage = () => {
                               />
                             </svg>
                             <p className="mt-1 text-sm text-gray-500">
-                              Click to upload an image
+                              Click to upload images
+                            </p>
+                            <p className="mt-1 text-xs text-gray-400">
+                              You can select multiple images
                             </p>
                           </div>
                         )}
@@ -441,15 +504,22 @@ const ItemFormPage = () => {
                         accept="image/*"
                         onChange={handleImageChange}
                         className="hidden"
+                        multiple
+                        disabled={isUploading}
                       />
                       <label
                         htmlFor="image"
-                        className="cursor-pointer py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        className={`cursor-pointer py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium ${
+                          isUploading ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
                       >
-                        {previewImage ? 'Change Image' : 'Upload Image'}
+                        {previewImages.length > 0 ? 'Add More Images' : 'Upload Images'}
                       </label>
+                      {errors.image && (
+                        <p className="mt-1 text-sm text-red-500">{errors.image}</p>
+                      )}
                       <p className="mt-1 text-xs text-gray-500">
-                        JPG, PNG or GIF up to 5MB
+                        JPG, PNG or GIF up to 5MB each
                       </p>
                     </div>
                   </div>
@@ -487,10 +557,10 @@ const ItemFormPage = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isUploading}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
                 >
-                  {isSubmitting && (
+                  {(isSubmitting || isUploading) && (
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

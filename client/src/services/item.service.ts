@@ -68,6 +68,7 @@ export const getAllItems = async (
       categoryId: typeof item.category === 'object' ? item.category._id : item.category,
       userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
       imageUrl: formatImageUrl(item.images?.[0] || ''),
+      imageUrls: item.images?.map((img: string) => formatImageUrl(img)) || [],
       status: item.status,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt
@@ -118,6 +119,7 @@ export const getUserItems = async (
       categoryId: typeof item.category === 'object' ? item.category._id : item.category,
       userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
       imageUrl: formatImageUrl(item.images?.[0] || ''),
+      imageUrls: item.images?.map((img: string) => formatImageUrl(img)) || [],
       status: item.status,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt
@@ -157,6 +159,7 @@ export const getItemById = async (id: string): Promise<ItemResponse> => {
         categoryId: typeof item.category === 'object' ? item.category._id : item.category,
         userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
         imageUrl: formatImageUrl(item.images?.[0] || ''),
+        imageUrls: item.images?.map((img: string) => formatImageUrl(img)) || [],
         status: item.status,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt
@@ -175,16 +178,34 @@ export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse>
   try {
     // Ensure imageUrl is properly formatted
     let imageUrl = formatImageUrl(itemData.imageUrl);
+    
+    // Handle imageUrls array
+    let imageUrls = itemData.imageUrls?.map(url => formatImageUrl(url)) || [];
+    
+    // If we have imageUrls but no imageUrl, use the first image as imageUrl
+    if (!imageUrl && imageUrls.length > 0) {
+      imageUrl = imageUrls[0];
+    }
+    
+    // If we have imageUrl but no imageUrls, add imageUrl to imageUrls
+    if (imageUrl && imageUrls.length === 0) {
+      imageUrls = [imageUrl];
+    }
+    
+    // Check for blob URLs
     if (imageUrl && imageUrl.startsWith('blob:')) {
       console.warn('Attempted to save blob URL as image URL. This is likely an error.');
       imageUrl = '';
     }
     
+    // Filter out any blob URLs from imageUrls
+    imageUrls = imageUrls.filter(url => !url.startsWith('blob:'));
+    
     // Map client-side field names to server-side field names
     const serverItemData = {
       ...itemData,
       category: itemData.categoryId, // Map categoryId to category for the server
-      images: imageUrl ? [imageUrl] : [], // Convert imageUrl to images array
+      images: imageUrls, // Use the imageUrls array for images
     };
     
     console.log('Creating item with data:', serverItemData);
@@ -192,19 +213,21 @@ export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse>
     console.log('Create item response:', response.data);
     
     // Transform the response to match our expected format
+    const item = response.data.data.item;
     const transformedResponse: ItemResponse = {
       item: {
-        id: response.data.data.item._id || response.data.data.item.id,
-        title: response.data.data.item.title,
-        description: response.data.data.item.description,
-        price: response.data.data.item.price,
-        condition: response.data.data.item.condition,
-        categoryId: response.data.data.item.category._id || response.data.data.item.category,
-        userId: response.data.data.item.seller._id || response.data.data.item.seller,
-        imageUrl: formatImageUrl(response.data.data.item.images?.[0] || ''),
-        status: response.data.data.item.status,
-        createdAt: response.data.data.item.createdAt,
-        updatedAt: response.data.data.item.updatedAt
+        id: item._id || item.id,
+        title: item.title,
+        description: item.description,
+        price: item.price,
+        condition: item.condition,
+        categoryId: typeof item.category === 'object' ? item.category._id : item.category,
+        userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
+        imageUrl: formatImageUrl(item.images?.[0] || ''),
+        imageUrls: item.images?.map((img: string) => formatImageUrl(img)) || [],
+        status: item.status,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
       }
     };
     
@@ -224,16 +247,34 @@ export const updateItem = async (id: string, itemData: Partial<Item>): Promise<I
   try {
     // Ensure imageUrl is properly formatted
     let imageUrl = formatImageUrl(itemData.imageUrl);
+    
+    // Handle imageUrls array
+    let imageUrls = itemData.imageUrls?.map(url => formatImageUrl(url)) || [];
+    
+    // If we have imageUrls but no imageUrl, use the first image as imageUrl
+    if (!imageUrl && imageUrls.length > 0) {
+      imageUrl = imageUrls[0];
+    }
+    
+    // If we have imageUrl but no imageUrls, add imageUrl to imageUrls
+    if (imageUrl && imageUrls.length === 0) {
+      imageUrls = [imageUrl];
+    }
+    
+    // Check for blob URLs
     if (imageUrl && imageUrl.startsWith('blob:')) {
       console.warn('Attempted to save blob URL as image URL. This is likely an error.');
       imageUrl = '';
     }
     
+    // Filter out any blob URLs from imageUrls
+    imageUrls = imageUrls.filter(url => !url.startsWith('blob:'));
+    
     // Map client-side field names to server-side field names
     const serverItemData = {
       ...itemData,
       category: itemData.categoryId, // Map categoryId to category for the server
-      images: imageUrl ? [imageUrl] : undefined, // Convert imageUrl to images array if present
+      images: imageUrls, // Use the imageUrls array for images
     };
     
     console.log('Updating item with data:', serverItemData);
@@ -252,6 +293,7 @@ export const updateItem = async (id: string, itemData: Partial<Item>): Promise<I
         categoryId: typeof item.category === 'object' ? item.category._id : item.category,
         userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
         imageUrl: formatImageUrl(item.images?.[0] || ''),
+        imageUrls: item.images?.map((img: string) => formatImageUrl(img)) || [],
         status: item.status,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt
