@@ -1,6 +1,7 @@
 // User types
 export interface User {
   id: string;
+  _id?: string; // MongoDB ID
   name: string;
   email: string;
   role: 'user' | 'admin';
@@ -14,6 +15,7 @@ export interface Item {
   title: string;
   description: string;
   price: number;
+  currency?: string;
   condition: 'new' | 'like_new' | 'good' | 'fair' | 'poor';
   categoryId: string;
   userId: string;

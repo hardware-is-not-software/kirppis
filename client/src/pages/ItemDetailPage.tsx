@@ -6,6 +6,7 @@ import { getItemById } from '../services/item.service';
 import { getUserById } from '../services/user.service';
 import { useAuth } from '../context/AuthContext';
 import { ItemResponse, User } from '../types';
+import { formatPrice, getDefaultCurrency } from '../utils/currency';
 
 const ItemDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -205,7 +206,9 @@ const ItemDetailPage = () => {
                 </span>
               </div>
               
-              <p className="text-2xl text-blue-600 font-bold mb-4">${item.price.toFixed(2)}</p>
+              <p className="text-2xl text-blue-600 font-bold mb-4">
+                {formatPrice(item.price, item.currency || getDefaultCurrency())}
+              </p>
               
               <div className="mb-6">
                 <h2 className="text-lg font-semibold mb-2">Description</h2>

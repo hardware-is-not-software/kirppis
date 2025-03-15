@@ -21,6 +21,8 @@ export interface IItem extends Document {
   title: string;
   description: string;
   price: number;
+  currency: string;
+  location: string;
   category: mongoose.Types.ObjectId;
   condition: ItemCondition;
   status: ItemStatus;
@@ -51,6 +53,14 @@ const itemSchema = new Schema<IItem>(
       type: Number,
       required: [true, 'Please provide a price'],
       min: [0, 'Price cannot be negative']
+    },
+    currency: {
+      type: String,
+      default: 'USD'
+    },
+    location: {
+      type: String,
+      default: ''
     },
     category: {
       type: Schema.Types.ObjectId,

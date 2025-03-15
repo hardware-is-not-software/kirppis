@@ -5,8 +5,31 @@ import Layout from '../components/Layout';
 import { getAllItems } from '../services/item.service';
 import { getAllCategories } from '../services/category.service';
 import { Item, Category } from '../types';
+import { formatPrice, getDefaultCurrency, getCurrencySymbol } from '../utils/currency';
 
-const DEFAULT_LOCATIONS = ['Main Office', 'Branch Office', 'Remote'];
+// Get locations from environment variables
+const getLocationsFromEnv = (): string[] => {
+  const locationsString = import.meta.env.VITE_DEFAULT_LOCATIONS || 'Main Office,USD,Branch Office,EUR,Remote,NOK';
+  return locationsString.split(',');
+};
+
+// Parse the locations array into name-currency pairs
+const parseLocations = () => {
+  const locationsArray = getLocationsFromEnv();
+  const result = [];
+  
+  // Process in pairs (name, currency)
+  for (let i = 0; i < locationsArray.length; i += 2) {
+    if (i + 1 < locationsArray.length) {
+      result.push({
+        name: locationsArray[i],
+        currency: locationsArray[i + 1]
+      });
+    }
+  }
+  
+  return result;
+};
 
 const ItemsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,6 +42,23 @@ const ItemsPage = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [showFilters, setShowFilters] = useState(true);
+
+  // Get default currency and symbol
+  const defaultCurrency = getDefaultCurrency();
+  const currencySymbol = getCurrencySymbol(defaultCurrency);
+  
+  // Get locations with their currencies
+  const locations = parseLocations();
+  
+  // Get currency for selected location
+  const getLocationCurrency = () => {
+    if (!selectedLocation) return defaultCurrency;
+    const location = locations.find(loc => loc.name === selectedLocation);
+    return location ? location.currency : defaultCurrency;
+  };
+  
+  const selectedCurrency = getLocationCurrency();
+  const selectedCurrencySymbol = getCurrencySymbol(selectedCurrency);
 
   // Update URL when filters change
   useEffect(() => {
@@ -51,6 +91,15 @@ const ItemsPage = () => {
   });
 
   const items: Item[] = itemsResponse?.items || [];
+  
+  // Debug items
+  useEffect(() => {
+    if (items.length > 0) {
+      console.log('Items loaded:', items);
+      console.log('First item currency:', items[0].currency);
+      console.log('First item location:', items[0].location);
+    }
+  }, [items]);
 
   // Fetch categories
   const { 
@@ -76,11 +125,25 @@ const ItemsPage = () => {
 
   // Filter and sort items
   const filteredItems = items.filter((item: Item) => {
+    // Debug location filtering
+    if (selectedLocation && item.location !== selectedLocation) {
+      console.log('Item location mismatch:', {
+        itemLocation: item.location,
+        selectedLocation,
+        itemTitle: item.title
+      });
+    }
+    
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory ? item.categoryId === selectedCategory : true;
     const matchesStatus = selectedStatuses.includes(item.status);
-    const matchesLocation = selectedLocation ? (item.location === selectedLocation) : true;
+    
+    // Make location comparison case-insensitive and trim whitespace
+    const matchesLocation = selectedLocation 
+      ? (item.location && item.location.trim().toLowerCase() === selectedLocation.trim().toLowerCase())
+      : true;
+    
     const matchesMinPrice = priceRange.min ? item.price >= Number(priceRange.min) : true;
     const matchesMaxPrice = priceRange.max ? item.price <= Number(priceRange.max) : true;
     
@@ -196,9 +259,9 @@ const ItemsPage = () => {
                       className="w-full p-3 pl-4 pr-10 bg-gray-50 border border-gray-200 rounded-xl appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700"
                     >
                       <option value="">All Locations</option>
-                      {DEFAULT_LOCATIONS.map((location) => (
-                        <option key={location} value={location}>
-                          {location}
+                      {locations.map((location) => (
+                        <option key={location.name} value={location.name}>
+                          {location.name} ({getCurrencySymbol(location.currency)})
                         </option>
                       ))}
                     </select>
@@ -252,12 +315,12 @@ const ItemsPage = () => {
                 {/* Price range */}
                 <div className="filter-group">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Price Range
+                    Price Range ({selectedCurrencySymbol})
                   </label>
                   <div className="flex items-center space-x-2">
                     <div className="relative flex-1">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-gray-500">$</span>
+                        <span className="text-gray-500">{selectedCurrencySymbol}</span>
                       </div>
                       <input
                         type="number"
@@ -270,7 +333,7 @@ const ItemsPage = () => {
                     <span className="text-gray-500">-</span>
                     <div className="relative flex-1">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-gray-500">$</span>
+                        <span className="text-gray-500">{selectedCurrencySymbol}</span>
                       </div>
                       <input
                         type="number"
@@ -351,7 +414,7 @@ const ItemsPage = () => {
                   )}
                   {selectedLocation && (
                     <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-medium bg-blue-100 text-blue-800">
-                      Location: {selectedLocation}
+                      Location: {selectedLocation} ({getCurrencySymbol(selectedCurrency)})
                       <button 
                         onClick={() => setSelectedLocation('')}
                         className="ml-1 text-blue-600 hover:text-blue-800"
@@ -362,7 +425,7 @@ const ItemsPage = () => {
                   )}
                   {(priceRange.min || priceRange.max) && (
                     <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-medium bg-blue-100 text-blue-800">
-                      Price: {priceRange.min ? `$${priceRange.min}` : '$0'} - {priceRange.max ? `$${priceRange.max}` : 'Any'}
+                      Price: {priceRange.min ? `${selectedCurrencySymbol}${priceRange.min}` : `${selectedCurrencySymbol}0`} - {priceRange.max ? `${selectedCurrencySymbol}${priceRange.max}` : 'Any'}
                       <button 
                         onClick={() => setPriceRange({ min: '', max: '' })}
                         className="ml-1 text-blue-600 hover:text-blue-800"
@@ -440,7 +503,9 @@ const ItemsPage = () => {
                       {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                     </span>
                   </div>
-                  <p className="text-blue-600 font-bold mb-2">${item.price.toFixed(2)}</p>
+                  <p className="text-blue-600 font-bold mb-2">
+                    {formatPrice(item.price, item.currency || getDefaultCurrency())}
+                  </p>
                   <p className="text-gray-600 text-sm mb-3 line-clamp-2 flex-1">{item.description}</p>
                   <div className="flex justify-between items-center mt-auto pt-2 border-t border-gray-100">
                     <span className="text-xs text-gray-500">

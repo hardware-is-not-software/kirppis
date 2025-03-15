@@ -30,6 +30,47 @@ We created a script to explore the MongoDB database:
 - Discovered the structure of collections: categories, items, users, and tests
 - Identified the user data structure and how IDs are stored in MongoDB
 
+### 4. Multiple Image Support
+
+We implemented support for multiple images per item:
+
+- Updated the `Item` interface to include an `imageUrls` array property
+- Modified the `ItemFormPage` to support uploading multiple images
+- Added a grid view to display all uploaded images with the ability to remove individual images
+- Created a gallery view in the `ItemDetailPage` with navigation arrows and thumbnails
+- Added an indicator in the `ItemsPage` to show when an item has multiple images
+
+### 5. Currency Selection Feature
+
+We added support for multiple currencies:
+
+- Updated the `.env` file to include available currencies and a default currency
+- Created a currency utility module with functions for formatting prices and handling currency symbols
+- Updated the `Item` interface to include a currency field
+- Modified the `ItemFormPage` to include a currency selection dropdown next to the price input
+- Updated the item display in `ItemDetailPage` and `ItemsPage` to show prices with the correct currency symbol
+- Implemented proper formatting for different currencies (e.g., JPY without decimal places, NOK with symbol after the amount)
+
+### 6. Docker Documentation
+
+We created comprehensive Docker documentation:
+
+- Added a `DOCKER.md` file with instructions for running the application in Docker
+- Included details on prerequisites, building and starting containers, and accessing the application
+- Provided configuration information for environment variables
+- Added troubleshooting tips for common issues
+- Included guidance for development in Docker
+
+### 7. Error Handling and UX Improvements
+
+We enhanced error handling and user experience:
+
+- Added robust error handling for image loading failures
+- Implemented fallback mechanisms to ensure images always display properly
+- Created a placeholder SVG image for when no image is available
+- Added validation for required fields in forms
+- Improved the UI with loading indicators and error messages
+
 ## How to Use What We Did
 
 ### Admin Page User Management
@@ -56,6 +97,36 @@ To explore your MongoDB database:
    - Display the total count of documents in each collection
 
 This script is useful for debugging and understanding the current state of your database.
+
+### Multiple Image Support
+
+To use the multiple image feature:
+
+1. When creating or editing an item, you can now select multiple images at once
+2. You can also add more images to an existing item
+3. The first image will be marked as the "Main" image and will be used as the primary display
+4. You can remove individual images by hovering over them and clicking the "×" button
+5. On the item detail page, you can browse through all images using the navigation arrows or thumbnails
+6. The image counter shows your current position in the gallery
+
+### Currency Selection
+
+To use the currency selection feature:
+
+1. When creating or editing an item, you can now select a currency from the dropdown next to the price input
+2. The currency symbol will update automatically based on your selection
+3. The price will be displayed with the correct currency symbol throughout the application
+4. Different currencies have appropriate formatting (e.g., JPY without decimal places, NOK with symbol after the amount)
+
+### Docker Setup
+
+To run the application in Docker:
+
+1. Follow the instructions in the `DOCKER.md` file
+2. Make sure you have Docker and Docker Compose installed
+3. Build and start the containers using the provided commands
+4. Access the application at the specified URLs
+5. Configure the environment variables as needed
 
 ## Suggested Tasks for Future Days
 

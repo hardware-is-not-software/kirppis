@@ -6,8 +6,31 @@ import { getItemById, createItem, updateItem, uploadImage } from '../services/it
 import { getAllCategories } from '../services/category.service';
 import { useAuth } from '../context/AuthContext';
 import { Item, Category } from '../types';
+import { getAvailableCurrencies, getDefaultCurrency, getCurrencySymbol } from '../utils/currency';
 
-const DEFAULT_LOCATIONS = ['Main Office', 'Branch Office', 'Remote'];
+// Get locations from environment variables
+const getLocationsFromEnv = (): string[] => {
+  const locationsString = import.meta.env.VITE_DEFAULT_LOCATIONS || 'Main Office,USD,Branch Office,EUR,Remote,NOK';
+  return locationsString.split(',');
+};
+
+// Parse the locations array into name-currency pairs
+const parseLocations = () => {
+  const locationsArray = getLocationsFromEnv();
+  const result = [];
+  
+  // Process in pairs (name, currency)
+  for (let i = 0; i < locationsArray.length; i += 2) {
+    if (i + 1 < locationsArray.length) {
+      result.push({
+        name: locationsArray[i],
+        currency: locationsArray[i + 1]
+      });
+    }
+  }
+  
+  return result;
+};
 
 const ItemFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,16 +38,24 @@ const ItemFormPage = () => {
   const { user } = useAuth();
   const isEditMode = !!id;
 
+  // Get available currencies
+  const availableCurrencies = getAvailableCurrencies();
+  const defaultCurrency = getDefaultCurrency();
+  
+  // Get locations with their currencies
+  const locations = parseLocations();
+
   // Form state
   const [formData, setFormData] = useState<Partial<Item>>({
     title: '',
     description: '',
     price: 0,
+    currency: defaultCurrency,
     condition: 'new',
     categoryId: '',
     imageUrls: [],
     status: 'available',
-    location: DEFAULT_LOCATIONS[0],
+    location: locations.length > 0 ? locations[0].name : '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,12 +81,13 @@ const ItemFormPage = () => {
       
       setFormData({
         ...item,
+        currency: item.currency || defaultCurrency,
         imageUrls
       });
       
       setPreviewImages(imageUrls);
     }
-  }, [isEditMode, itemResponse]);
+  }, [isEditMode, itemResponse, defaultCurrency]);
 
   // Fetch categories
   const { 
@@ -75,7 +107,17 @@ const ItemFormPage = () => {
       // Handle price as a number
       setFormData({
         ...formData,
-        [name]: value === '' ? '' : Number(value)
+        [name]: value === '' ? undefined : Number(value)
+      });
+    } else if (name === 'location') {
+      // When location changes, update the currency as well
+      const selectedLocation = locations.find(loc => loc.name === value);
+      const locationCurrency = selectedLocation ? selectedLocation.currency : defaultCurrency;
+      
+      setFormData({
+        ...formData,
+        location: value,
+        currency: locationCurrency
       });
     } else {
       // Handle other fields
@@ -179,7 +221,7 @@ const ItemFormPage = () => {
       newErrors.description = 'Description is required';
     }
     
-    if (formData.price === undefined || formData.price === null || formData.price === '') {
+    if (formData.price === undefined || formData.price === null) {
       newErrors.price = 'Price is required';
     } else if (Number(formData.price) < 0) {
       newErrors.price = 'Price cannot be negative';
@@ -191,6 +233,10 @@ const ItemFormPage = () => {
 
     if (!formData.location) {
       newErrors.location = 'Location is required';
+    }
+
+    if (!formData.currency) {
+      newErrors.currency = 'Currency is required';
     }
     
     setErrors(newErrors);
@@ -209,6 +255,8 @@ const ItemFormPage = () => {
     try {
       // Log the form data before submission
       console.log('Submitting form with data:', formData);
+      console.log('Currency before submission:', formData.currency);
+      console.log('Location before submission:', formData.location);
       console.log('Image URLs before submission:', formData.imageUrls);
       
       // Prepare data for submission
@@ -218,6 +266,8 @@ const ItemFormPage = () => {
         imageUrl: formData.imageUrls && formData.imageUrls.length > 0 ? formData.imageUrls[0] : ''
       };
       
+      console.log('Final submission data:', submissionData);
+      
       if (isEditMode) {
         // Update existing item
         await updateItem(id as string, submissionData);
@@ -226,9 +276,11 @@ const ItemFormPage = () => {
         // Create new item
         const response = await createItem({
           ...submissionData,
-          userId: user?.id // Set the current user as the owner
+          userId: user?._id // Set the current user as the owner
         });
         console.log('Item created successfully:', response);
+        console.log('Created item currency:', response.item.currency);
+        console.log('Created item location:', response.item.location);
         navigate(`/items/${response.item.id}`);
       }
     } catch (error) {
@@ -288,31 +340,79 @@ const ItemFormPage = () => {
                     )}
                   </div>
                   
-                  {/* Price */}
+                  {/* Location - Moved here from below */}
+                  <div>
+                    <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                      Location <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="location"
+                      name="location"
+                      value={formData.location || ''}
+                      onChange={handleChange}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        errors.location ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="">Select a location</option>
+                      {locations.map((location) => (
+                        <option key={location.name} value={location.name}>
+                          {location.name} ({getCurrencySymbol(location.currency)})
+                        </option>
+                      ))}
+                    </select>
+                    {errors.location && (
+                      <p className="mt-1 text-sm text-red-500">{errors.location}</p>
+                    )}
+                  </div>
+                  
+                  {/* Price and Currency */}
                   <div>
                     <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
                       Price <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-gray-500">$</span>
+                    <div className="flex space-x-2">
+                      <div className="relative flex-1">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500">{getCurrencySymbol(formData.currency || defaultCurrency)}</span>
+                        </div>
+                        <input
+                          type="number"
+                          id="price"
+                          name="price"
+                          value={formData.price === 0 ? '' : formData.price}
+                          onChange={handleChange}
+                          min="0"
+                          step="0.01"
+                          className={`w-full pl-8 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            errors.price ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="0.00"
+                        />
                       </div>
-                      <input
-                        type="number"
-                        id="price"
-                        name="price"
-                        value={formData.price === 0 ? '' : formData.price}
-                        onChange={handleChange}
-                        min="0"
-                        step="0.01"
-                        className={`w-full pl-8 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.price ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="0.00"
-                      />
+                      <div className="w-1/3">
+                        <select
+                          id="currency"
+                          name="currency"
+                          value={formData.currency || defaultCurrency}
+                          onChange={handleChange}
+                          className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                            errors.currency ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        >
+                          {availableCurrencies.map(currency => (
+                            <option key={currency} value={currency}>
+                              {currency}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     {errors.price && (
                       <p className="mt-1 text-sm text-red-500">{errors.price}</p>
+                    )}
+                    {errors.currency && (
+                      <p className="mt-1 text-sm text-red-500">{errors.currency}</p>
                     )}
                   </div>
                   
@@ -364,32 +464,6 @@ const ItemFormPage = () => {
                       <option value="fair">Fair</option>
                       <option value="poor">Poor</option>
                     </select>
-                  </div>
-
-                  {/* Location */}
-                  <div>
-                    <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                      Location <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      id="location"
-                      name="location"
-                      value={formData.location || ''}
-                      onChange={handleChange}
-                      className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.location ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    >
-                      <option value="">Select a location</option>
-                      {DEFAULT_LOCATIONS.map((location) => (
-                        <option key={location} value={location}>
-                          {location}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.location && (
-                      <p className="mt-1 text-sm text-red-500">{errors.location}</p>
-                    )}
                   </div>
                 </div>
                 

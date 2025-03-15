@@ -58,12 +58,22 @@ export const getAllItems = async (
     const response = await api.get<any>(`/items?page=${page}&limit=${limit}`);
     console.log('Get all items response:', response.data);
     
+    // Debug item locations
+    if (response.data.data.items && response.data.data.items.length > 0) {
+      console.log('Item locations from API:');
+      response.data.data.items.forEach((item: any, index: number) => {
+        console.log(`Item ${index + 1} (${item.title}): location=${item.location}, currency=${item.currency}`);
+      });
+    }
+    
     // Transform the response to match our expected format
     const transformedItems = response.data.data.items.map((item: any) => ({
       id: item._id || item.id,
       title: item.title,
       description: item.description,
       price: item.price,
+      currency: item.currency || 'USD',
+      location: item.location || '',
       condition: item.condition,
       categoryId: typeof item.category === 'object' ? item.category._id : item.category,
       userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
@@ -115,6 +125,8 @@ export const getUserItems = async (
       title: item.title,
       description: item.description,
       price: item.price,
+      currency: item.currency || 'USD',
+      location: item.location || '',
       condition: item.condition,
       categoryId: typeof item.category === 'object' ? item.category._id : item.category,
       userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
@@ -155,6 +167,8 @@ export const getItemById = async (id: string): Promise<ItemResponse> => {
         title: item.title,
         description: item.description,
         price: item.price,
+        currency: item.currency || 'USD',
+        location: item.location || '',
         condition: item.condition,
         categoryId: typeof item.category === 'object' ? item.category._id : item.category,
         userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
@@ -206,6 +220,8 @@ export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse>
       ...itemData,
       category: itemData.categoryId, // Map categoryId to category for the server
       images: imageUrls, // Use the imageUrls array for images
+      location: itemData.location || '', // Ensure location is included
+      currency: itemData.currency || 'USD', // Ensure currency is included
     };
     
     console.log('Creating item with data:', serverItemData);
@@ -220,6 +236,8 @@ export const createItem = async (itemData: Partial<Item>): Promise<ItemResponse>
         title: item.title,
         description: item.description,
         price: item.price,
+        currency: item.currency || 'USD',
+        location: item.location || '',
         condition: item.condition,
         categoryId: typeof item.category === 'object' ? item.category._id : item.category,
         userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
@@ -275,6 +293,8 @@ export const updateItem = async (id: string, itemData: Partial<Item>): Promise<I
       ...itemData,
       category: itemData.categoryId, // Map categoryId to category for the server
       images: imageUrls, // Use the imageUrls array for images
+      location: itemData.location || '', // Ensure location is included
+      currency: itemData.currency || 'USD', // Ensure currency is included
     };
     
     console.log('Updating item with data:', serverItemData);
@@ -289,6 +309,8 @@ export const updateItem = async (id: string, itemData: Partial<Item>): Promise<I
         title: item.title,
         description: item.description,
         price: item.price,
+        currency: item.currency || 'USD',
+        location: item.location || '',
         condition: item.condition,
         categoryId: typeof item.category === 'object' ? item.category._id : item.category,
         userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
@@ -329,10 +351,13 @@ export const updateItemStatus = async (id: string, status: string): Promise<Item
         title: item.title,
         description: item.description,
         price: item.price,
+        currency: item.currency || 'USD',
+        location: item.location || '',
         condition: item.condition,
         categoryId: typeof item.category === 'object' ? item.category._id : item.category,
         userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
-        imageUrl: item.images?.[0] || '',
+        imageUrl: formatImageUrl(item.images?.[0] || ''),
+        imageUrls: item.images?.map((img: string) => formatImageUrl(img)) || [],
         status: item.status,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt
@@ -363,112 +388,3 @@ export const deleteItem = async (id: string): Promise<{ status: string; message:
   }
 };
 
-// Reserve an item
-export const reserveItem = async (itemId: string): Promise<ItemResponse> => {
-  try {
-    // In a real app, this would be an API call
-    // For now, we'll simulate it
-    const mockItem: Item = {
-      id: itemId,
-      title: `Item ${itemId}`,
-      description: `This is a description for item ${itemId}. It contains details about the condition, features, and other relevant information.`,
-      price: Math.floor(Math.random() * 100) + 5,
-      condition: 'good',
-      categoryId: `category-${Math.floor(Math.random() * 5) + 1}`,
-      userId: `user-${Math.floor(Math.random() * 3) + 1}`,
-      imageUrl: '/images/No_Image_Available.jpg',
-      status: 'reserved',
-      createdAt: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      item: mockItem
-    };
-  } catch (error) {
-    console.error('Error reserving item:', error);
-    throw error;
-  }
-};
-
-// Cancel reservation
-export const cancelReservation = async (id: string): Promise<ItemResponse> => {
-  try {
-    // In a real app, this would be an actual API call
-    const mockItem: Item = {
-      id,
-      title: `Item ${id}`,
-      description: `Description for item ${id}`,
-      price: Math.floor(Math.random() * 100) + 5,
-      condition: 'good',
-      categoryId: `category-1`,
-      userId: `user-1`,
-      imageUrl: '/images/No_Image_Available.jpg',
-      status: 'available',
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      item: mockItem
-    };
-  } catch (error) {
-    console.error(`Error canceling reservation for item with ID ${id}:`, error);
-    throw error;
-  }
-};
-
-// Mark item as sold
-export const markItemAsSold = async (id: string): Promise<ItemResponse> => {
-  try {
-    // In a real app, this would be an actual API call
-    const mockItem: Item = {
-      id,
-      title: `Item ${id}`,
-      description: `Description for item ${id}`,
-      price: Math.floor(Math.random() * 100) + 5,
-      condition: 'good',
-      categoryId: `category-1`,
-      userId: `user-1`,
-      imageUrl: '/images/No_Image_Available.jpg',
-      status: 'sold',
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      item: mockItem
-    };
-  } catch (error) {
-    console.error(`Error marking item with ID ${id} as sold:`, error);
-    throw error;
-  }
-};
-
-// Buy an item
-export const buyItem = async (itemId: string): Promise<ItemResponse> => {
-  try {
-    // In a real app, this would be an API call
-    // For now, we'll simulate it
-    const mockItem: Item = {
-      id: itemId,
-      title: `Item ${itemId}`,
-      description: `This is a description for item ${itemId}. It contains details about the condition, features, and other relevant information.`,
-      price: Math.floor(Math.random() * 100) + 5,
-      condition: 'good',
-      categoryId: `category-${Math.floor(Math.random() * 5) + 1}`,
-      userId: `user-${Math.floor(Math.random() * 3) + 1}`,
-      imageUrl: '/images/No_Image_Available.jpg',
-      status: 'sold',
-      createdAt: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    return {
-      item: mockItem
-    };
-  } catch (error) {
-    console.error('Error buying item:', error);
-    throw error;
-  }
-}; 
