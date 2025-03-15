@@ -27,7 +27,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from the uploads directory
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
-app.use('/uploads', express.static(uploadDir));
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(uploadDir));
 
 // Logging
 if (config.enableLogging) {

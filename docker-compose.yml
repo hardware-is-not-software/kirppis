@@ -32,8 +32,9 @@ services:
       - UPLOAD_DIR=/app/uploads
       - JWT_SECRET=secure-jwt-secret-for-docker-deployment
       - JWT_EXPIRES_IN=1d
+      - CORS_ORIGINS=http://localhost:5173
     volumes:
-      - uploads_data:/app/uploads
+      - ./uploads:/app/uploads
 
   # Frontend service
   client:
@@ -50,5 +51,4 @@ services:
       - VITE_API_URL=http://localhost:5001/api/v1
 
 volumes:
-  mongo_data:
-  uploads_data: 
+  mongo_data: 
