@@ -7,7 +7,7 @@ services:
     container_name: kirppis-mongo
     restart: always
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - mongo_data:/data/db
     environment:
@@ -21,7 +21,7 @@ services:
     container_name: kirppis-server
     restart: always
     ports:
-      - "5000:5000"
+      - "5001:5000"
     depends_on:
       - mongo
     environment:
@@ -30,6 +30,8 @@ services:
       - HOST=0.0.0.0
       - MONGO_URI=mongodb://mongo:27017/kirppis
       - UPLOAD_DIR=/app/uploads
+      - JWT_SECRET=secure-jwt-secret-for-docker-deployment
+      - JWT_EXPIRES_IN=1d
     volumes:
       - uploads_data:/app/uploads
 
@@ -45,7 +47,7 @@ services:
     depends_on:
       - server
     environment:
-      - VITE_API_URL=http://localhost:5000/api/v1
+      - VITE_API_URL=http://localhost:5001/api/v1
 
 volumes:
   mongo_data:

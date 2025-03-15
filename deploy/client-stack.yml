@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  client:
+    image: ${REGISTRY_URL:-localhost}/kirppis/client:${CLIENT_TAG:-latest}
+    deploy:
+      replicas: ${CLIENT_REPLICAS:-2}
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.kirppis.rule=Host(`${DOMAIN:-kirppis.example.com}`)"
+        - "traefik.http.services.kirppis.loadbalancer.server.port=5173"
+        # Uncomment for HTTPS in production
+        # - "traefik.http.routers.kirppis.entrypoints=websecure"
+        # - "traefik.http.routers.kirppis.tls=true"
+        # - "traefik.http.routers.kirppis.tls.certresolver=myresolver"
+    ports:
+      # Comment this out if using Traefik in production
+      - "${PUBLIC_PORT:-80}:5173"
+    environment:
+      - VITE_API_URL=http://server:5000/api/v1
+    networks:
+      - kirppis-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  kirppis-network:
+    external: true 

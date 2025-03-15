@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  server:
+    image: ${REGISTRY_URL:-localhost}/kirppis/server:${SERVER_TAG:-latest}
+    deploy:
+      replicas: ${SERVER_REPLICAS:-2}
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - HOST=0.0.0.0
+      - MONGO_URI=mongodb://mongo:27017/kirppis
+      - UPLOAD_DIR=/app/uploads
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - JWT_EXPIRES_IN=1d
+      # Add any other environment variables your application needs
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - kirppis-network
+    secrets:
+      - jwt_secret
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  uploads_data:
+    driver: local
+
+networks:
+  kirppis-network:
+    external: true
+
+secrets:
+  jwt_secret:
+    external: true 

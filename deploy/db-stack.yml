@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:latest
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 10s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=kirppis
+      # Optional: Add authentication for production
+      # - MONGO_INITDB_ROOT_USERNAME_FILE=/run/secrets/mongo_root_username
+      # - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo_root_password
+    networks:
+      - kirppis-network
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Uncomment for production to use secrets
+    # secrets:
+    #   - mongo_root_username
+    #   - mongo_root_password
+
+  # Optional: Add a backup service for production
+  backup:
+    image: mongo:latest
+    command: sh -c 'mongodump --host mongo --archive=/backup/kirppis-$$(date +%Y%m%d%H%M).archive'
+    volumes:
+      - backup_data:/backup
+    networks:
+      - kirppis-network
+    deploy:
+      mode: replicated
+      replicas: 0  # Set to 0 to disable by default
+      restart_policy:
+        condition: none
+      # Use this for scheduled backups in production
+      # labels:
+      #   - "swarm.cronjob.enable=true"
+      #   - "swarm.cronjob.schedule=0 0 * * *"  # Daily at midnight
+      #   - "swarm.cronjob.skip-running=true"
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:
+    driver: local
+  backup_data:
+    driver: local
+
+networks:
+  kirppis-network:
+    external: true
+
+# Uncomment for production to use secrets
+# secrets:
+#   mongo_root_username:
+#     external: true
+#   mongo_root_password:
+#     external: true 
