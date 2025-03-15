@@ -564,3 +564,9 @@ If you encounter CORS issues:
 If you have port conflicts:
 1. Check if another process is using the required ports
 2. Update the port configuration in the appropriate files
+
+
+Notes by human:
+docker compose up --build server client
+
+docker compose up --build --no-deps server client
