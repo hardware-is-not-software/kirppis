@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # MongoDB service
+  mongo:
+    image: mongo:latest
+    container_name: kirppis-mongo
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=kirppis
+    networks:
+      - kirppis-network
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend service
+  server:
+    image: localhost/kirppis/server:latest
+    container_name: kirppis-server
+    restart: always
+    ports:
+      - "5001:5000"
+    depends_on:
+      - mongo
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - HOST=0.0.0.0
+      - MONGO_URI=mongodb://mongo:27017/kirppis
+      - UPLOAD_DIR=/app/uploads
+      - JWT_SECRET=test-jwt-secret-for-local-testing
+      - JWT_EXPIRES_IN=1d
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:5001
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - kirppis-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Frontend service
+  client:
+    image: localhost/kirppis/client:latest
+    container_name: kirppis-client
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
+    environment:
+      - VITE_API_URL=http://localhost:5001/api/v1
+    networks:
+      - kirppis-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  mongo_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+networks:
+  kirppis-network:
+    driver: bridge 

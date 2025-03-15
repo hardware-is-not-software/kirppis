@@ -127,9 +127,9 @@ const ItemDetailPage = () => {
                   onError={(e) => {
                     console.error('Image failed to load:', images[selectedImageIndex]);
                     // Try the direct backend URL as a fallback
-                    if (images[selectedImageIndex] && !e.currentTarget.src.includes('localhost:5000')) {
+                    if (images[selectedImageIndex] && !e.currentTarget.src.includes('localhost:5001')) {
                       console.log('Trying fallback to direct backend URL');
-                      e.currentTarget.src = `http://localhost:5000${images[selectedImageIndex]}`;
+                      e.currentTarget.src = `http://localhost:5001${images[selectedImageIndex]}`;
                     } else {
                       e.currentTarget.src = '/images/No_Image_Available.svg';
                       e.currentTarget.onerror = null;

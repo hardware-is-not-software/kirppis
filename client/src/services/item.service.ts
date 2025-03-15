@@ -55,8 +55,15 @@ export const getAllItems = async (
   limit = 10
 ): Promise<ItemsResponse> => {
   try {
+    console.log(`getAllItems called with page=${page}, limit=${limit}`);
     const response = await api.get<any>(`/items?page=${page}&limit=${limit}`);
     console.log('Get all items response:', response.data);
+    
+    // Check if the response has the expected structure
+    if (!response.data || !response.data.data || !response.data.data.items) {
+      console.error('Unexpected API response structure:', response.data);
+      return { items: [], total: 0, page, limit };
+    }
     
     // Debug item locations
     if (response.data.data.items && response.data.data.items.length > 0) {
@@ -64,32 +71,45 @@ export const getAllItems = async (
       response.data.data.items.forEach((item: any, index: number) => {
         console.log(`Item ${index + 1} (${item.title}): location=${item.location}, currency=${item.currency}`);
       });
+    } else {
+      console.log('No items returned from API or items array is empty');
+      console.log('Response structure:', JSON.stringify(response.data));
     }
     
     // Transform the response to match our expected format
-    const transformedItems = response.data.data.items.map((item: any) => ({
-      id: item._id || item.id,
-      title: item.title,
-      description: item.description,
-      price: item.price,
-      currency: item.currency || 'USD',
-      location: item.location || '',
-      condition: item.condition,
-      categoryId: typeof item.category === 'object' ? item.category._id : item.category,
-      userId: typeof item.seller === 'object' ? item.seller._id : item.seller,
-      imageUrl: formatImageUrl(item.images?.[0] || ''),
-      imageUrls: item.images?.map((img: string) => formatImageUrl(img)) || [],
-      status: item.status,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt
-    }));
+    const transformedItems = response.data.data.items.map((item: any) => {
+      console.log(`Transforming item: ${item.title}`);
+      const transformedItem = {
+        id: item._id || item.id,
+        title: item.title || '',
+        description: item.description || '',
+        price: typeof item.price === 'number' ? item.price : 0,
+        currency: item.currency || 'USD',
+        location: item.location || '',
+        condition: item.condition || 'good',
+        categoryId: typeof item.category === 'object' ? item.category._id : (item.category || ''),
+        userId: typeof item.seller === 'object' ? item.seller._id : (item.seller || ''),
+        imageUrl: formatImageUrl(item.images?.[0] || ''),
+        imageUrls: item.images?.map((img: string) => formatImageUrl(img)) || [],
+        status: item.status || 'available',
+        createdAt: item.createdAt || new Date().toISOString(),
+        updatedAt: item.updatedAt || new Date().toISOString()
+      };
+      console.log(`Transformed item:`, transformedItem);
+      return transformedItem;
+    });
     
-    return {
+    const result = {
       items: transformedItems,
       total: response.data.results || transformedItems.length,
       page: page,
       limit: limit
     };
+    
+    console.log(`getAllItems returning ${transformedItems.length} items`);
+    console.log('Final result:', result);
+    
+    return result;
   } catch (error: any) {
     console.error('Error fetching items:', error);
     if (error.response) {

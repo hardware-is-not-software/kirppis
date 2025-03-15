@@ -512,3 +512,55 @@ The API will be available at `http://localhost:5000/api/v1` (npm version) or `ht
 ## License
 
 This project is licensed under the MIT License.
+
+## Port Configuration
+
+### Local Development
+- **Server**: Runs on port 5000
+- **Client**: Runs on port 5173
+- **API URL**: http://localhost:5000/api/v1
+- **MongoDB**: Runs on port 27017
+
+### Docker Environment
+- **Server**: Container port 5000 mapped to host port 5001
+- **Client**: Runs on port 5173
+- **API URL**: http://localhost:5001/api/v1
+- **MongoDB**: Container port 27017 mapped to host port 27018
+
+## Environment Variables
+
+### Client (.env)
+```
+VITE_API_URL=http://localhost:5000/api/v1  # For local development
+VITE_API_URL=http://localhost:5001/api/v1  # For Docker environment
+```
+
+### Server (.env)
+```
+PORT=5000
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:5001
+```
+
+## Running the Application
+
+### Local Development
+1. Start MongoDB
+2. Start the server: `cd server && npm run dev`
+3. Start the client: `cd client && npm run dev`
+
+### Docker Environment
+1. Build the images: `cd deploy && docker compose build`
+2. Start the containers: `cd deploy && docker compose up -d`
+
+## Troubleshooting
+
+### CORS Issues
+If you encounter CORS issues:
+1. Check that the server's CORS configuration includes all necessary origins
+2. Ensure the client is using the correct API URL
+3. Verify that the server is running on the expected port
+
+### Port Conflicts
+If you have port conflicts:
+1. Check if another process is using the required ports
+2. Update the port configuration in the appropriate files

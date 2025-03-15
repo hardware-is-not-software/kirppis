@@ -19,7 +19,7 @@ const app = express();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5000'],
+  origin: config.corsOrigins.split(','),
   credentials: true
 }));
 app.use(express.json());

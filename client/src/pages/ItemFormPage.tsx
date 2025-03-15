@@ -513,8 +513,8 @@ const ItemFormPage = () => {
                               className="w-full h-24 object-cover rounded border border-gray-300"
                               onError={(e) => {
                                 console.error('Preview image failed to load:', previewUrl);
-                                if (previewUrl && !previewUrl.startsWith('blob:') && !e.currentTarget.src.includes('localhost:5000')) {
-                                  e.currentTarget.src = `http://localhost:5000${previewUrl}`;
+                                if (previewUrl && !previewUrl.startsWith('blob:') && !e.currentTarget.src.includes('localhost:5001')) {
+                                  e.currentTarget.src = `http://localhost:5001${previewUrl}`;
                                 }
                               }}
                             />

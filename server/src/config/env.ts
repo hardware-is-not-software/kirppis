@@ -18,7 +18,7 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   
   // CORS configuration
-  corsOrigins: process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173',
+  corsOrigins: process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173,http://localhost:5001',
   
   // Logging
   enableLogging: process.env.ENABLE_LOGGING !== 'false',

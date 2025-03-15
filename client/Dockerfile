@@ -11,6 +11,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Rename .env.docker to .env for Docker environment
+RUN if [ -f .env.docker ]; then cp .env.docker .env; fi
+
 # Build the app - skip TypeScript checking
 RUN npm run build || (echo "Ignoring TypeScript errors" && npx vite build)
 

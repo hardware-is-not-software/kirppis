@@ -4,23 +4,34 @@ import api from './api';
 // Get all categories
 export const getAllCategories = async (): Promise<CategoriesResponse> => {
   try {
+    console.log('getAllCategories called');
     const response = await api.get<any>('/categories');
+    console.log('Get all categories response:', response.data);
+    
+    // Check if the response has the expected structure
+    if (!response.data || !response.data.data || !response.data.data.categories) {
+      console.error('Unexpected API response structure:', response.data);
+      return { categories: [] };
+    }
     
     // Transform the response to match our expected format
     const transformedCategories: Category[] = response.data.data.categories.map((category: any) => ({
       id: category._id,
-      name: category.name,
+      name: category.name || 'Unnamed Category',
       description: category.description || '',
-      createdAt: category.createdAt,
-      updatedAt: category.updatedAt
+      createdAt: category.createdAt || new Date().toISOString(),
+      updatedAt: category.updatedAt || new Date().toISOString()
     }));
+    
+    console.log('Transformed categories:', transformedCategories);
     
     return {
       categories: transformedCategories
     };
   } catch (error) {
     console.error('Error fetching categories:', error);
-    throw error;
+    // Return an empty array instead of throwing an error
+    return { categories: [] };
   }
 };
 
