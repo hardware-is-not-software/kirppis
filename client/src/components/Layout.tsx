@@ -15,13 +15,21 @@ const Layout = ({ children }: LayoutProps) => {
     navigate('/login');
   };
 
+  // Get logo URL from environment variables or use favicon as fallback
+  const logoUrl = import.meta.env.VITE_STORE_LOGO_URL || '/images/favicon/favicon.svg';
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
       <header className="bg-white shadow-md">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link to="/" className="text-2xl font-bold text-blue-600">
-            Kirppis
+          <Link to="/" className="flex items-center space-x-2">
+            <img 
+              src={logoUrl} 
+              alt="Kirppis Logo" 
+              className="h-8 w-auto" 
+            />
+            <span className="text-2xl font-bold text-blue-600">Kirppis</span>
           </Link>
 
           <nav className="hidden md:flex space-x-6">
