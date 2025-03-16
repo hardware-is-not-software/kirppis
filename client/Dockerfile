@@ -17,6 +17,9 @@ RUN cp .env.production .env
 # Build the app
 RUN npm run build || (echo "Ignoring TypeScript errors" && npx vite build)
 
+# Inject the API override script into the HTML
+RUN sed -i 's/<head>/<head><script src="\/api-override.js"><\/script>/' /app/dist/index.html
+
 # Production stage
 FROM nginx:alpine
 

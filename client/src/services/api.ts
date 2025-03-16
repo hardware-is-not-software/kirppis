@@ -1,10 +1,15 @@
 import axios from 'axios';
 
-// Get the API URL from environment variables
-const apiUrl = import.meta.env.VITE_API_URL;
+// Define types for environment variables
+interface ImportMetaEnv {
+  VITE_API_URL: string;
+}
+
+// Force the API URL to be the relative path that will work with nginx
+const apiUrl = '/api/v1';
 
 // Log the API URL for debugging
-console.log('API URL from environment:', apiUrl);
+console.log('API URL (hardcoded):', apiUrl);
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -17,7 +22,7 @@ const api = axios.create({
 
 // Add a request interceptor to add the auth token to requests
 api.interceptors.request.use(
-  (config) => {
+  (config: any) => {
     // Log the request URL for debugging
     console.log('Making API request to:', config.baseURL + config.url);
     
@@ -27,13 +32,13 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error: any) => Promise.reject(error)
 );
 
 // Add a response interceptor to handle common errors
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response: any) => response,
+  (error: any) => {
     console.error('API request error:', error.message, error.config?.url);
     
     // Handle 401 Unauthorized errors (token expired or invalid)
