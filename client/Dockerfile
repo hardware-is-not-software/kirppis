@@ -8,13 +8,13 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code
+# Copy source code and env files
 COPY . .
 
-# Rename .env.docker to .env for Docker environment
-RUN if [ -f .env.docker ]; then cp .env.docker .env; fi
+# Ensure the production env file is used
+RUN cp .env.production .env
 
-# Build the app - skip TypeScript checking
+# Build the app
 RUN npm run build || (echo "Ignoring TypeScript errors" && npx vite build)
 
 # Production stage
