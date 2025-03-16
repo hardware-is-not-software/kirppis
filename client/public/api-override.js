@@ -11,7 +11,10 @@
     { from: 'localhost:5001/api/v1', to: '/api/v1' },
     { from: 'localhost:5001', to: '/api' },
     { from: 'http://server:5000/api/v1', to: '/api/v1' },
-    { from: 'http://server:5000', to: '/api' }
+    { from: 'http://server:5000', to: '/api' },
+    { from: 'server:5000/api/v1', to: '/api/v1' },
+    { from: 'server:5000', to: '/api' },
+    // Add more patterns as needed
   ];
   
   console.log('API override: Will replace the following patterns:');
@@ -51,85 +54,30 @@
   // Create a global variable to store the API URL
   window.API_URL = '/api/v1';
   
-  // Patch axios if it's loaded
-  const patchAxios = function() {
-    if (window.axios) {
-      console.log('Patching axios defaults');
-      window.axios.defaults.baseURL = '/api/v1';
-      
-      // Also patch axios request interceptor
-      if (window.axios.interceptors && window.axios.interceptors.request) {
-        window.axios.interceptors.request.use(function(config) {
-          if (config.url) {
-            config.url = replaceUrl(config.url);
-          }
-          if (config.baseURL) {
-            config.baseURL = replaceUrl(config.baseURL);
-          }
-          return config;
-        });
+  // Override any axios baseURL that might be set
+  if (window.axios) {
+    console.log('Overriding axios defaults');
+    window.axios.defaults.baseURL = window.API_URL;
+  }
+  
+  // Check for any script tags with hardcoded URLs and patch them
+  const patchScriptTags = function() {
+    const scripts = document.querySelectorAll('script');
+    scripts.forEach(script => {
+      if (script.src && (script.src.includes('localhost:5001') || script.src.includes('server:5000'))) {
+        const newSrc = replaceUrl(script.src);
+        console.log(`Patching script src from ${script.src} to ${newSrc}`);
+        script.src = newSrc;
       }
-    }
+    });
   };
   
-  // Try to patch axios now
-  patchAxios();
-  
-  // Also try to patch axios after the page loads
-  window.addEventListener('load', patchAxios);
-  
-  // Monitor for script loads that might include axios
-  const originalCreateElement = document.createElement;
-  document.createElement = function(tagName) {
-    const element = originalCreateElement.call(document, tagName);
-    if (tagName.toLowerCase() === 'script') {
-      element.addEventListener('load', patchAxios);
-    }
-    return element;
-  };
-  
-  // Directly modify any global variables that might contain the problematic URLs
-  setInterval(function() {
-    // Search through all global variables for strings containing the problematic URLs
-    for (const key in window) {
-      try {
-        const value = window[key];
-        if (typeof value === 'string') {
-          for (const { from, to } of urlReplacements) {
-            if (value.includes(from)) {
-              console.log(`Found problematic URL in global variable ${key}, replacing`);
-              window[key] = value.replace(from, to);
-              break;
-            }
-          }
-        } else if (typeof value === 'object' && value !== null) {
-          // Look for baseURL in axios-like objects
-          if (value.defaults && value.defaults.baseURL && typeof value.defaults.baseURL === 'string') {
-            for (const { from, to } of urlReplacements) {
-              if (value.defaults.baseURL.includes(from)) {
-                console.log(`Found problematic URL in ${key}.defaults.baseURL, replacing`);
-                value.defaults.baseURL = value.defaults.baseURL.replace(from, to);
-                break;
-              }
-            }
-          }
-          
-          // Look for config objects with url property
-          if (value.url && typeof value.url === 'string') {
-            for (const { from, to } of urlReplacements) {
-              if (value.url.includes(from)) {
-                console.log(`Found problematic URL in ${key}.url, replacing`);
-                value.url = value.url.replace(from, to);
-                break;
-              }
-            }
-          }
-        }
-      } catch (e) {
-        // Ignore errors when accessing certain properties
-      }
-    }
-  }, 1000); // Check every second
+  // Run the patch when DOM is loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', patchScriptTags);
+  } else {
+    patchScriptTags();
+  }
   
   // Create a special proxy for the specific problematic URL
   const createProxyForUrl = function(url) {

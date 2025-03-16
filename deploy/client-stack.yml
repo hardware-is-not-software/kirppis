@@ -28,7 +28,7 @@ services:
       # Comment this out if using Traefik in production
       - "${PUBLIC_PORT:-80}:5173"
     environment:
-      - VITE_API_URL=http://server:5000/api/v1
+      - VITE_API_URL=/api/v1
     networks:
       - kirppis-network
     healthcheck:

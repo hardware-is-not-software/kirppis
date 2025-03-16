@@ -5,11 +5,12 @@ interface ImportMetaEnv {
   VITE_API_URL: string;
 }
 
-// Force the API URL to be the relative path that will work with nginx
-const apiUrl = '/api/v1';
+// Get the API URL from environment variables with fallback to relative path
+const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
 
 // Log the API URL for debugging
-console.log('API URL (hardcoded):', apiUrl);
+console.log('API URL from env:', import.meta.env.VITE_API_URL);
+console.log('API URL used:', apiUrl);
 
 // Create an axios instance with default config
 const api = axios.create({
