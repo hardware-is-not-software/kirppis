@@ -6,6 +6,8 @@
   
   // Define the problematic URL patterns and their replacements
   const urlReplacements = [
+    { from: 'http://localhost:5001/api/v1/items', to: '/api/v1/items' },
+    { from: 'localhost:5001/api/v1/items', to: '/api/v1/items' },
     { from: 'localhost:5001/api/v1', to: '/api/v1' },
     { from: 'localhost:5001', to: '/api' },
     { from: 'http://server:5000/api/v1', to: '/api/v1' },
@@ -54,6 +56,19 @@
     if (window.axios) {
       console.log('Patching axios defaults');
       window.axios.defaults.baseURL = '/api/v1';
+      
+      // Also patch axios request interceptor
+      if (window.axios.interceptors && window.axios.interceptors.request) {
+        window.axios.interceptors.request.use(function(config) {
+          if (config.url) {
+            config.url = replaceUrl(config.url);
+          }
+          if (config.baseURL) {
+            config.baseURL = replaceUrl(config.baseURL);
+          }
+          return config;
+        });
+      }
     }
   };
   
@@ -98,12 +113,41 @@
               }
             }
           }
+          
+          // Look for config objects with url property
+          if (value.url && typeof value.url === 'string') {
+            for (const { from, to } of urlReplacements) {
+              if (value.url.includes(from)) {
+                console.log(`Found problematic URL in ${key}.url, replacing`);
+                value.url = value.url.replace(from, to);
+                break;
+              }
+            }
+          }
         }
       } catch (e) {
         // Ignore errors when accessing certain properties
       }
     }
   }, 1000); // Check every second
+  
+  // Create a special proxy for the specific problematic URL
+  const createProxyForUrl = function(url) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/v1/items?page=1&limit=8', true);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        console.log('Proxy request completed:', xhr.status);
+      }
+    };
+    xhr.send();
+  };
+  
+  // Try to make a proxy request for the specific URL
+  setTimeout(function() {
+    console.log('Making proxy request for problematic URL');
+    createProxyForUrl('http://localhost:5001/api/v1/items?page=1&limit=8');
+  }, 2000);
   
   console.log('Enhanced API override complete, API_URL set to:', window.API_URL);
 })(); 

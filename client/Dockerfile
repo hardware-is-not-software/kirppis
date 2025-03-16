@@ -18,13 +18,19 @@ RUN cp .env.production .env
 RUN npm run build || (echo "Ignoring TypeScript errors" && npx vite build)
 
 # Inject the API override script into the HTML
-RUN sed -i 's/<head>/<head><script src="\/api-override.js"><\/script>/' /app/dist/index.html
+RUN sed -i 's/<head>/<head><script src="\/api-override.js"><\/script><script src="\/direct-patch.js"><\/script>/' /app/dist/index.html
+
+# Create directory structure for proxy files
+RUN mkdir -p /app/dist/localhost:5001/api/v1
 
 # Production stage
 FROM nginx:alpine
 
 # Copy built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# Create directory structure for proxy files
+RUN mkdir -p /usr/share/nginx/html/localhost:5001/api/v1
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
