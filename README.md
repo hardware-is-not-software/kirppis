@@ -567,6 +567,16 @@ If you have port conflicts:
 
 
 Notes by human:
+docker setup:
 docker compose up --build server client
-
+or
 docker compose up --build --no-deps server client
+
+local:
+docker compose up -d mongo
+cd server
+npm run dev
+cd ../client
+npm run dev
+
+
